@@ -397,15 +397,6 @@
             font-size: 0.75rem;
             font-weight: 700;
         }
-
-        .api-notice {
-            background: rgba(0, 212, 255, 0.1);
-            border: 1px solid rgba(0, 212, 255, 0.3);
-            border-radius: 8px;
-            padding: 0.75rem;
-            margin-bottom: 1rem;
-            font-size: 0.85rem;
-        }
     </style>
 </head>
 <body>
@@ -427,13 +418,6 @@
                     <span class="text-sm text-gray-400" id="connectionStatus">CONECTANDO...</span>
                 </div>
             </div>
-        </div>
-
-        <!-- API Notice -->
-        <div class="api-notice">
-            <strong>💡 Configuración API:</strong> Para obtener precios REALES de acciones, obtén tu API key gratis en 
-            <a href="https://finnhub.io/register" target="_blank" class="text-blue-400 underline">finnhub.io</a> 
-            y agrégala en el código (línea ~600). Plan gratuito: 60 llamadas/minuto.
         </div>
 
         <!-- Category Filters -->
@@ -599,7 +583,7 @@
         const BINANCE_WS = 'wss://stream.binance.com:9443/ws/';
         const BINANCE_API = 'https://api.binance.com/api/v3';
         const FINNHUB_API = 'https://finnhub.io/api/v1';
-        const FINNHUB_WS = `d689iihr01qi2if79vo0d689iihr01qi2if79vog`;
+        const FINNHUB_WS = `wss://ws.finnhub.io?token=${FINNHUB_API_KEY}`;
         
         let currentAsset = 'BTCUSDT';
         let currentTimeframe = '1h';
@@ -670,7 +654,7 @@
             updateCategoryCounts();
             renderAssetButtons();
             setupChart();
-            await loadAsset('NVDA'); // Empezar con NVIDIA
+            await loadAsset('BTCUSDT'); // Empezar con Bitcoin (más rápido)
             document.getElementById('connectionStatus').textContent = 'EN VIVO';
         }
 
@@ -1009,20 +993,36 @@
         }
 
         function updateSMCAnalysis() {
-            if (priceData.length === 0) return;
+            if (priceData.length === 0) {
+                // Show loading state
+                document.getElementById('marketBias').innerHTML = '<div class="loading">Analizando</div>';
+                document.getElementById('orderBlocks').innerHTML = '<div class="loading">Detectando zonas</div>';
+                document.getElementById('fvgZones').innerHTML = '<div class="loading">Buscando gaps</div>';
+                document.getElementById('liquidityZones').innerHTML = '<div class="loading">Mapeando liquidez</div>';
+                document.getElementById('structureBreaks').innerHTML = '<div class="loading">Analizando estructura</div>';
+                return;
+            }
 
-            const recentCandles = priceData.slice(-100);
-            const orderBlocks = detectOrderBlocks(recentCandles);
-            const fvgs = detectFVG(recentCandles);
-            const liquidityZones = detectLiquidityZones(recentCandles);
-            const structureBreaks = detectStructureBreaks(recentCandles);
-            const bias = calculateMarketBias(recentCandles);
-            
-            renderMarketBias(bias);
-            renderOrderBlocks(orderBlocks);
-            renderFVG(fvgs);
-            renderLiquidityZones(liquidityZones);
-            renderStructureBreaks(structureBreaks);
+            // Wait a bit for data to populate, then analyze
+            setTimeout(() => {
+                if (priceData.length < 10) {
+                    console.log('Esperando más datos...');
+                    return;
+                }
+
+                const recentCandles = priceData.slice(-100);
+                const orderBlocks = detectOrderBlocks(recentCandles);
+                const fvgs = detectFVG(recentCandles);
+                const liquidityZones = detectLiquidityZones(recentCandles);
+                const structureBreaks = detectStructureBreaks(recentCandles);
+                const bias = calculateMarketBias(recentCandles);
+                
+                renderMarketBias(bias);
+                renderOrderBlocks(orderBlocks);
+                renderFVG(fvgs);
+                renderLiquidityZones(liquidityZones);
+                renderStructureBreaks(structureBreaks);
+            }, 500);
         }
 
         // Funciones SMC (igual que antes)
