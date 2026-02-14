@@ -623,9 +623,9 @@
             }
         }
 
-        // Base de datos de activos - SOLO Crypto y Forex
+        // Base de datos de activos - Top cryptos de Binance
         const allAssets = [
-            // Crypto (Top 20)
+            // Top 30 Crypto por capitalización
             { symbol: 'BTCUSDT', name: 'Bitcoin', type: 'crypto', displayName: 'BTC' },
             { symbol: 'ETHUSDT', name: 'Ethereum', type: 'crypto', displayName: 'ETH' },
             { symbol: 'BNBUSDT', name: 'Binance Coin', type: 'crypto', displayName: 'BNB' },
@@ -646,6 +646,79 @@
             { symbol: 'NEARUSDT', name: 'NEAR Protocol', type: 'crypto', displayName: 'NEAR' },
             { symbol: 'ALGOUSDT', name: 'Algorand', type: 'crypto', displayName: 'ALGO' },
             { symbol: 'VETUSDT', name: 'VeChain', type: 'crypto', displayName: 'VET' },
+            { symbol: 'ICPUSDT', name: 'Internet Computer', type: 'crypto', displayName: 'ICP' },
+            { symbol: 'APTUSDT', name: 'Aptos', type: 'crypto', displayName: 'APT' },
+            { symbol: 'ARBUSDT', name: 'Arbitrum', type: 'crypto', displayName: 'ARB' },
+            { symbol: 'OPUSDT', name: 'Optimism', type: 'crypto', displayName: 'OP' },
+            { symbol: 'LDOUSDT', name: 'Lido DAO', type: 'crypto', displayName: 'LDO' },
+            { symbol: 'FILUSDT', name: 'Filecoin', type: 'crypto', displayName: 'FIL' },
+            { symbol: 'INJUSDT', name: 'Injective', type: 'crypto', displayName: 'INJ' },
+            { symbol: 'SUIUSDT', name: 'Sui', type: 'crypto', displayName: 'SUI' },
+            { symbol: 'RNDRUSDT', name: 'Render', type: 'crypto', displayName: 'RNDR' },
+            { symbol: 'IMXUSDT', name: 'Immutable X', type: 'crypto', displayName: 'IMX' },
+            
+            // Layer 2 & DeFi
+            { symbol: 'AAVEUSDT', name: 'Aave', type: 'crypto', displayName: 'AAVE' },
+            { symbol: 'MKRUSDT', name: 'Maker', type: 'crypto', displayName: 'MKR' },
+            { symbol: 'CRVUSDT', name: 'Curve DAO', type: 'crypto', displayName: 'CRV' },
+            { symbol: 'SUSHIUSDT', name: 'SushiSwap', type: 'crypto', displayName: 'SUSHI' },
+            { symbol: 'COMPUSDT', name: 'Compound', type: 'crypto', displayName: 'COMP' },
+            { symbol: 'SNXUSDT', name: 'Synthetix', type: 'crypto', displayName: 'SNX' },
+            { symbol: '1INCHUSDT', name: '1inch', type: 'crypto', displayName: '1INCH' },
+            
+            // Gaming & Metaverse
+            { symbol: 'SANDUSDT', name: 'The Sandbox', type: 'crypto', displayName: 'SAND' },
+            { symbol: 'MANAUSDT', name: 'Decentraland', type: 'crypto', displayName: 'MANA' },
+            { symbol: 'AXSUSDT', name: 'Axie Infinity', type: 'crypto', displayName: 'AXS' },
+            { symbol: 'GALAUSDT', name: 'Gala', type: 'crypto', displayName: 'GALA' },
+            { symbol: 'ENJUSDT', name: 'Enjin Coin', type: 'crypto', displayName: 'ENJ' },
+            { symbol: 'CHZUSDT', name: 'Chiliz', type: 'crypto', displayName: 'CHZ' },
+            
+            // Memecoins
+            { symbol: 'SHIBUSDT', name: 'Shiba Inu', type: 'crypto', displayName: 'SHIB' },
+            { symbol: 'PEPEUSDT', name: 'Pepe', type: 'crypto', displayName: 'PEPE' },
+            { symbol: 'FLOKIUSDT', name: 'Floki', type: 'crypto', displayName: 'FLOKI' },
+            { symbol: 'BONKUSDT', name: 'Bonk', type: 'crypto', displayName: 'BONK' },
+            
+            // Exchange Tokens
+            { symbol: 'FTTUSDT', name: 'FTX Token', type: 'crypto', displayName: 'FTT' },
+            { symbol: 'CAKEUSDT', name: 'PancakeSwap', type: 'crypto', displayName: 'CAKE' },
+            
+            // Otros populares
+            { symbol: 'GRTUSDT', name: 'The Graph', type: 'crypto', displayName: 'GRT' },
+            { symbol: 'THETAUSDT', name: 'Theta Network', type: 'crypto', displayName: 'THETA' },
+            { symbol: 'FTMUSDT', name: 'Fantom', type: 'crypto', displayName: 'FTM' },
+            { symbol: 'XTZUSDT', name: 'Tezos', type: 'crypto', displayName: 'XTZ' },
+            { symbol: 'EOSUSDT', name: 'EOS', type: 'crypto', displayName: 'EOS' },
+            { symbol: 'XMRUSDT', name: 'Monero', type: 'crypto', displayName: 'XMR' },
+            { symbol: 'ARUSDT', name: 'Arweave', type: 'crypto', displayName: 'AR' },
+            { symbol: 'CFXUSDT', name: 'Conflux', type: 'crypto', displayName: 'CFX' },
+            { symbol: 'FLOWUSDT', name: 'Flow', type: 'crypto', displayName: 'FLOW' },
+            { symbol: 'QNTUSDT', name: 'Quant', type: 'crypto', displayName: 'QNT' },
+            { symbol: 'HBARUSDT', name: 'Hedera', type: 'crypto', displayName: 'HBAR' },
+            { symbol: 'STXUSDT', name: 'Stacks', type: 'crypto', displayName: 'STX' },
+            { symbol: 'MINAUSDT', name: 'Mina Protocol', type: 'crypto', displayName: 'MINA' },
+            { symbol: 'RUNEUSDT', name: 'THORChain', type: 'crypto', displayName: 'RUNE' },
+            { symbol: 'ZILUSDT', name: 'Zilliqa', type: 'crypto', displayName: 'ZIL' },
+            { symbol: 'KAVAUSDT', name: 'Kava', type: 'crypto', displayName: 'KAVA' },
+            { symbol: 'ONEUSDT', name: 'Harmony', type: 'crypto', displayName: 'ONE' },
+            { symbol: 'IOTAUSDT', name: 'IOTA', type: 'crypto', displayName: 'IOTA' },
+            { symbol: 'ZECUSDT', name: 'Zcash', type: 'crypto', displayName: 'ZEC' },
+            { symbol: 'DASHUSDT', name: 'Dash', type: 'crypto', displayName: 'DASH' },
+            { symbol: 'WAVESUSDT', name: 'Waves', type: 'crypto', displayName: 'WAVES' },
+            { symbol: 'ICXUSDT', name: 'ICON', type: 'crypto', displayName: 'ICX' },
+            { symbol: 'KSMUSDT', name: 'Kusama', type: 'crypto', displayName: 'KSM' },
+            { symbol: 'CELOUSDT', name: 'Celo', type: 'crypto', displayName: 'CELO' },
+            { symbol: 'RSRUSDT', name: 'Reserve Rights', type: 'crypto', displayName: 'RSR' },
+            { symbol: 'OGNUSDT', name: 'Origin Protocol', type: 'crypto', displayName: 'OGN' },
+            { symbol: 'BANDUSDT', name: 'Band Protocol', type: 'crypto', displayName: 'BAND' },
+            { symbol: 'BLZUSDT', name: 'Bluzelle', type: 'crypto', displayName: 'BLZ' },
+            { symbol: 'BATUSDT', name: 'Basic Attention Token', type: 'crypto', displayName: 'BAT' },
+            
+            // Stablecoins (para referencia)
+            { symbol: 'USDCUSDT', name: 'USD Coin', type: 'crypto', displayName: 'USDC' },
+            { symbol: 'BUSDUSDT', name: 'Binance USD', type: 'crypto', displayName: 'BUSD' },
+            { symbol: 'DAIUSDT', name: 'Dai', type: 'crypto', displayName: 'DAI' },
             
             // Forex (Solo pares disponibles en Binance)
             { symbol: 'EURUSDT', name: 'Euro / US Dollar', type: 'forex', displayName: 'EUR/USD' },
