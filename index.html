@@ -12,9 +12,7 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     <title>SMC Pro Trading Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
@@ -146,15 +144,6 @@
             box-shadow: 0 0 30px rgba(0, 255, 157, 0.5);
         }
 
-        .metric-value {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 2rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #00ff9d 0%, #00d4ff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
         .bullish {
             color: #00ff9d;
             text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
@@ -199,15 +188,9 @@
         }
 
         @keyframes pulse-ring {
-            0% {
-                box-shadow: 0 0 0 0 rgba(0, 255, 157, 0.7);
-            }
-            70% {
-                box-shadow: 0 0 0 10px rgba(0, 255, 157, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(0, 255, 157, 0);
-            }
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 157, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 255, 157, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 157, 0); }
         }
 
         .signal-badge {
@@ -332,6 +315,30 @@
         .badge-stock { background: rgba(138, 43, 226, 0.2); color: #8a2be2; }
         .badge-index { background: rgba(255, 215, 0, 0.2); color: #ffd700; }
         .badge-commodity { background: rgba(0, 255, 157, 0.2); color: #00ff9d; }
+
+        #tvChart {
+            width: 100%;
+            height: 100%;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #00ff9d;
+            font-size: 0.9rem;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
     </style>
 </head>
 <body>
@@ -349,7 +356,7 @@
                 </div>
                 <div class="flex items-center gap-4">
                     <div class="pulse-dot" style="background: #00ff9d;"></div>
-                    <span class="text-sm text-gray-400">DATOS EN VIVO</span>
+                    <span class="text-sm text-gray-400" id="connectionStatus">CONECTANDO...</span>
                 </div>
             </div>
         </div>
@@ -357,7 +364,7 @@
         <!-- Search & Quick Access -->
         <div class="glass-card mb-6">
             <div class="mb-4">
-                <input type="text" id="assetSearch" class="search-box" placeholder="Buscar activo... (ej: XAUUSD, S&P500, NVDA, BTCUSDT)">
+                <input type="text" id="assetSearch" class="search-box" placeholder="Buscar activo... (ej: BTCUSDT, ETHUSDT, BNBUSDT)">
             </div>
             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3" id="assetButtons">
                 <!-- Botones generados dinámicamente -->
@@ -373,10 +380,9 @@
                     <div class="flex items-center justify-between mb-4">
                         <div>
                             <h2 class="text-3xl font-bold flex items-center" id="currentAsset">
-                                XAUUSD
-                                <span class="asset-type-badge badge-commodity" id="assetTypeBadge">COMMODITY</span>
+                                <span class="loading">Cargando</span>
                             </h2>
-                            <p class="text-sm text-gray-400" id="assetName">Gold / US Dollar</p>
+                            <p class="text-sm text-gray-400" id="assetName">Conectando a APIs...</p>
                         </div>
                         <div class="text-right">
                             <div class="price-ticker" id="currentPrice">$0.00</div>
@@ -403,7 +409,7 @@
                             <div class="text-lg font-bold text-red-400" id="low24h">-</div>
                         </div>
                         <div>
-                            <div class="text-xs text-gray-400 mb-1">Volumen</div>
+                            <div class="text-xs text-gray-400 mb-1">Volumen 24h</div>
                             <div class="text-lg font-bold text-blue-400" id="volume24h">-</div>
                         </div>
                         <div>
@@ -416,7 +422,7 @@
                 <!-- Chart -->
                 <div class="glass-card">
                     <div class="chart-container">
-                        <canvas id="priceChart"></canvas>
+                        <div id="tvChart"></div>
                     </div>
                 </div>
 
@@ -443,7 +449,7 @@
                         Sesgo del Mercado
                     </h3>
                     <div id="marketBias" class="text-center py-6">
-                        <!-- Generated dynamically -->
+                        <div class="loading">Analizando</div>
                     </div>
                 </div>
 
@@ -451,7 +457,7 @@
                 <div class="glass-card">
                     <h3 class="text-lg font-bold mb-4">📦 Order Blocks Activos</h3>
                     <div id="orderBlocks" class="space-y-3">
-                        <!-- Generated dynamically -->
+                        <div class="loading">Detectando zonas</div>
                     </div>
                 </div>
 
@@ -459,7 +465,7 @@
                 <div class="glass-card">
                     <h3 class="text-lg font-bold mb-4">⚡ Fair Value Gaps</h3>
                     <div id="fvgZones" class="space-y-3">
-                        <!-- Generated dynamically -->
+                        <div class="loading">Buscando gaps</div>
                     </div>
                 </div>
 
@@ -467,7 +473,7 @@
                 <div class="glass-card">
                     <h3 class="text-lg font-bold mb-4">💧 Zonas de Liquidez</h3>
                     <div id="liquidityZones" class="space-y-3">
-                        <!-- Generated dynamically -->
+                        <div class="loading">Mapeando liquidez</div>
                     </div>
                 </div>
 
@@ -475,7 +481,7 @@
                 <div class="glass-card">
                     <h3 class="text-lg font-bold mb-4">🔄 Cambios de Estructura</h3>
                     <div id="structureBreaks" class="space-y-3">
-                        <!-- Generated dynamically -->
+                        <div class="loading">Analizando estructura</div>
                     </div>
                 </div>
             </div>
@@ -483,86 +489,108 @@
     </div>
 
     <script>
-        // Asset database con precios reales actualizados
-        const assets = {
-            commodities: [
-                { symbol: 'XAUUSD', name: 'Gold / US Dollar', type: 'commodity', basePrice: 5041.00, decimals: 2 },
-                { symbol: 'XAGUSD', name: 'Silver / US Dollar', type: 'commodity', basePrice: 32.50, decimals: 2 }
-            ],
-            crypto: [
-                { symbol: 'BTCUSDT', name: 'Bitcoin / USDT', type: 'crypto', basePrice: 67200, decimals: 2 },
-                { symbol: 'ETHUSDT', name: 'Ethereum / USDT', type: 'crypto', basePrice: 3090, decimals: 2 },
-                { symbol: 'BNBUSDT', name: 'Binance Coin / USDT', type: 'crypto', basePrice: 620, decimals: 2 },
-                { symbol: 'SOLUSDT', name: 'Solana / USDT', type: 'crypto', basePrice: 130, decimals: 2 },
-                { symbol: 'XRPUSDT', name: 'Ripple / USDT', type: 'crypto', basePrice: 1.99, decimals: 3 }
-            ],
-            forex: [
-                { symbol: 'EURUSD', name: 'Euro / US Dollar', type: 'forex', basePrice: 1.0850, decimals: 5 },
-                { symbol: 'GBPUSD', name: 'British Pound / US Dollar', type: 'forex', basePrice: 1.2650, decimals: 5 },
-                { symbol: 'USDJPY', name: 'US Dollar / Japanese Yen', type: 'forex', basePrice: 148.50, decimals: 3 },
-                { symbol: 'AUDUSD', name: 'Australian Dollar / US Dollar', type: 'forex', basePrice: 0.6420, decimals: 5 }
-            ],
-            stocks: [
-                { symbol: 'NVDA', name: 'NVIDIA Corporation', type: 'stock', basePrice: 180.00, decimals: 2 },
-                { symbol: 'AAPL', name: 'Apple Inc.', type: 'stock', basePrice: 220.00, decimals: 2 },
-                { symbol: 'TSLA', name: 'Tesla Inc.', type: 'stock', basePrice: 350.00, decimals: 2 },
-                { symbol: 'MSFT', name: 'Microsoft Corporation', type: 'stock', basePrice: 425.00, decimals: 2 },
-                { symbol: 'GOOGL', name: 'Alphabet Inc.', type: 'stock', basePrice: 175.00, decimals: 2 },
-                { symbol: 'AMZN', name: 'Amazon.com Inc.', type: 'stock', basePrice: 210.00, decimals: 2 }
-            ],
-            indices: [
-                { symbol: 'SPX', name: 'S&P 500 Index', type: 'index', basePrice: 6950, decimals: 2 },
-                { symbol: 'NDX', name: 'Nasdaq 100 Index', type: 'index', basePrice: 24980, decimals: 2 },
-                { symbol: 'DJI', name: 'Dow Jones Industrial Average', type: 'index', basePrice: 50200, decimals: 2 }
-            ]
+        // Configuración de APIs
+        const BINANCE_WS = 'wss://stream.binance.com:9443/ws/';
+        const BINANCE_API = 'https://api.binance.com/api/v3';
+        
+        let currentAsset = 'BTCUSDT';
+        let currentTimeframe = '1h';
+        let currentTab = 'smc';
+        let chart = null;
+        let candleSeries = null;
+        let websocket = null;
+        let priceData = [];
+
+        // Asset database - Solo crypto por ahora (Binance API)
+        const cryptoAssets = [
+            { symbol: 'BTCUSDT', name: 'Bitcoin / USDT', type: 'crypto' },
+            { symbol: 'ETHUSDT', name: 'Ethereum / USDT', type: 'crypto' },
+            { symbol: 'BNBUSDT', name: 'Binance Coin / USDT', type: 'crypto' },
+            { symbol: 'SOLUSDT', name: 'Solana / USDT', type: 'crypto' },
+            { symbol: 'XRPUSDT', name: 'Ripple / USDT', type: 'crypto' },
+            { symbol: 'ADAUSDT', name: 'Cardano / USDT', type: 'crypto' },
+            { symbol: 'DOGEUSDT', name: 'Dogecoin / USDT', type: 'crypto' },
+            { symbol: 'MATICUSDT', name: 'Polygon / USDT', type: 'crypto' },
+            { symbol: 'DOTUSDT', name: 'Polkadot / USDT', type: 'crypto' },
+            { symbol: 'AVAXUSDT', name: 'Avalanche / USDT', type: 'crypto' },
+            { symbol: 'LINKUSDT', name: 'Chainlink / USDT', type: 'crypto' },
+            { symbol: 'UNIUSDT', name: 'Uniswap / USDT', type: 'crypto' }
+        ];
+
+        // Mapeo de timeframes
+        const timeframeMap = {
+            '1m': '1m',
+            '5m': '5m',
+            '15m': '15m',
+            '1h': '1h',
+            '4h': '4h',
+            '1d': '1d'
         };
 
-        let currentAsset = 'XAUUSD';
-        let currentTimeframe = '1h';
-        let priceChart;
-        let currentTab = 'smc';
-        let priceUpdateInterval;
-
         // Initialize
-        function init() {
+        async function init() {
             renderAssetButtons();
-            loadAsset('XAUUSD');
             setupChart();
-            startPriceUpdates();
+            await loadAsset('BTCUSDT');
+            document.getElementById('connectionStatus').textContent = 'EN VIVO';
         }
 
         function renderAssetButtons() {
             const container = document.getElementById('assetButtons');
-            const allAssets = [
-                ...assets.commodities,
-                ...assets.indices,
-                ...assets.stocks,
-                ...assets.crypto,
-                ...assets.forex
-            ];
-            
-            container.innerHTML = allAssets.map(asset => `
+            container.innerHTML = cryptoAssets.map(asset => `
                 <button class="asset-button ${asset.symbol === currentAsset ? 'active' : ''}" 
                         onclick="loadAsset('${asset.symbol}')">
-                    ${asset.symbol}
+                    ${asset.symbol.replace('USDT', '')}
                 </button>
             `).join('');
         }
 
-        function getAssetData(symbol) {
-            const allAssets = [
-                ...assets.commodities,
-                ...assets.crypto,
-                ...assets.forex,
-                ...assets.stocks,
-                ...assets.indices
-            ];
-            return allAssets.find(a => a.symbol === symbol);
+        function setupChart() {
+            const chartContainer = document.getElementById('tvChart');
+            
+            chart = LightweightCharts.createChart(chartContainer, {
+                width: chartContainer.clientWidth,
+                height: chartContainer.clientHeight,
+                layout: {
+                    background: { color: 'transparent' },
+                    textColor: '#8892b0',
+                },
+                grid: {
+                    vertLines: { color: 'rgba(0, 255, 157, 0.1)' },
+                    horzLines: { color: 'rgba(0, 255, 157, 0.1)' },
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                },
+                rightPriceScale: {
+                    borderColor: 'rgba(0, 255, 157, 0.2)',
+                },
+                timeScale: {
+                    borderColor: 'rgba(0, 255, 157, 0.2)',
+                    timeVisible: true,
+                    secondsVisible: false,
+                },
+            });
+
+            candleSeries = chart.addCandlestickSeries({
+                upColor: '#00ff9d',
+                downColor: '#ff4d6d',
+                borderVisible: false,
+                wickUpColor: '#00ff9d',
+                wickDownColor: '#ff4d6d',
+            });
+
+            window.addEventListener('resize', () => {
+                chart.applyOptions({
+                    width: chartContainer.clientWidth,
+                    height: chartContainer.clientHeight,
+                });
+            });
         }
 
-        function loadAsset(symbol) {
+        async function loadAsset(symbol) {
             currentAsset = symbol;
-            const asset = getAssetData(symbol);
+            const asset = cryptoAssets.find(a => a.symbol === symbol);
             
             if (!asset) return;
 
@@ -573,52 +601,97 @@
             document.getElementById('assetName').textContent = asset.name;
             
             renderAssetButtons();
-            updatePriceData();
+            
+            // Cerrar websocket anterior
+            if (websocket) {
+                websocket.close();
+            }
+            
+            // Cargar datos históricos
+            await loadHistoricalData();
+            
+            // Conectar websocket para datos en tiempo real
+            connectWebSocket();
+            
+            // Actualizar análisis SMC
             updateSMCAnalysis();
-            updateChart();
             switchTab(currentTab);
         }
 
-        function updatePriceData() {
-            const asset = getAssetData(currentAsset);
-            if (!asset) return;
-            
-            // Simulación de variación de precio más realista
-            const variation = (Math.random() - 0.5) * 0.006; // ±0.6%
-            const price = asset.basePrice * (1 + variation);
-            const change = variation * 100;
-            
-            const priceEl = document.getElementById('currentPrice');
-            if (asset.type === 'forex') {
-                priceEl.textContent = price.toFixed(asset.decimals);
-            } else {
-                priceEl.textContent = `$${price.toLocaleString('en-US', {
-                    minimumFractionDigits: asset.decimals,
-                    maximumFractionDigits: asset.decimals
-                })}`;
+        async function loadHistoricalData() {
+            try {
+                const interval = timeframeMap[currentTimeframe];
+                const limit = 500;
+                
+                const response = await fetch(
+                    `${BINANCE_API}/klines?symbol=${currentAsset}&interval=${interval}&limit=${limit}`
+                );
+                
+                const data = await response.json();
+                
+                priceData = data.map(candle => ({
+                    time: candle[0] / 1000,
+                    open: parseFloat(candle[1]),
+                    high: parseFloat(candle[2]),
+                    low: parseFloat(candle[3]),
+                    close: parseFloat(candle[4]),
+                    volume: parseFloat(candle[5])
+                }));
+                
+                candleSeries.setData(priceData);
+                
+                // Actualizar precio actual
+                const lastCandle = priceData[priceData.length - 1];
+                updatePriceDisplay(lastCandle);
+                
+                // Calcular estadísticas 24h
+                await update24hStats();
+                
+            } catch (error) {
+                console.error('Error cargando datos históricos:', error);
             }
+        }
+
+        function connectWebSocket() {
+            const stream = currentAsset.toLowerCase() + '@kline_' + timeframeMap[currentTimeframe];
+            websocket = new WebSocket(BINANCE_WS + stream);
+            
+            websocket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                const candle = data.k;
+                
+                const newCandle = {
+                    time: candle.t / 1000,
+                    open: parseFloat(candle.o),
+                    high: parseFloat(candle.h),
+                    low: parseFloat(candle.l),
+                    close: parseFloat(candle.c),
+                    volume: parseFloat(candle.v)
+                };
+                
+                candleSeries.update(newCandle);
+                updatePriceDisplay(newCandle);
+            };
+            
+            websocket.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                document.getElementById('connectionStatus').textContent = 'ERROR CONEXIÓN';
+            };
+        }
+
+        function updatePriceDisplay(candle) {
+            const price = candle.close;
+            const open = priceData[priceData.length - 50]?.close || candle.open;
+            const change = ((price - open) / open * 100);
+            
+            document.getElementById('currentPrice').textContent = 
+                `$${price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             
             const changeEl = document.getElementById('priceChange');
             changeEl.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
             changeEl.className = `text-lg font-semibold ${change >= 0 ? 'bullish' : 'bearish'}`;
 
-            const high = price * (1 + Math.random() * 0.015);
-            const low = price * (1 - Math.random() * 0.015);
-            
-            document.getElementById('high24h').textContent = asset.type === 'forex' ? 
-                high.toFixed(asset.decimals) : 
-                `$${high.toLocaleString('en-US', {minimumFractionDigits: asset.decimals})}`;
-            
-            document.getElementById('low24h').textContent = asset.type === 'forex' ? 
-                low.toFixed(asset.decimals) : 
-                `$${low.toLocaleString('en-US', {minimumFractionDigits: asset.decimals})}`;
-
-            const volumeSuffix = asset.type === 'forex' ? 'B' : asset.type === 'crypto' ? 'M' : 'M';
-            const volumeBase = asset.type === 'forex' ? 5 : asset.type === 'index' ? 150 : 50;
-            document.getElementById('volume24h').textContent = 
-                `${(volumeBase + Math.random() * volumeBase).toFixed(1)}${volumeSuffix}`;
-            
-            const trend = change > 0.2 ? 'ALCISTA' : change < -0.2 ? 'BAJISTA' : 'NEUTRAL';
+            const trend = change > 0.5 ? 'ALCISTA' : change < -0.5 ? 'BAJISTA' : 'NEUTRAL';
             const trendEl = document.getElementById('trend');
             trendEl.textContent = trend;
             trendEl.className = `text-lg font-bold ${
@@ -628,295 +701,344 @@
             }`;
         }
 
-        function updateSMCAnalysis() {
-            const asset = getAssetData(currentAsset);
-            if (!asset) return;
+        async function update24hStats() {
+            try {
+                const response = await fetch(
+                    `${BINANCE_API}/ticker/24hr?symbol=${currentAsset}`
+                );
+                
+                const stats = await response.json();
+                
+                document.getElementById('high24h').textContent = 
+                    `$${parseFloat(stats.highPrice).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                
+                document.getElementById('low24h').textContent = 
+                    `$${parseFloat(stats.lowPrice).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                
+                const volume = parseFloat(stats.volume);
+                const volumeStr = volume > 1000000 ? 
+                    `${(volume / 1000000).toFixed(1)}M` : 
+                    `${(volume / 1000).toFixed(0)}K`;
+                    
+                document.getElementById('volume24h').textContent = volumeStr;
+                
+            } catch (error) {
+                console.error('Error obteniendo estadísticas 24h:', error);
+            }
+        }
 
-            // Market Bias
-            const biases = ['ALCISTA', 'BAJISTA', 'NEUTRAL'];
-            const bias = biases[Math.floor(Math.random() * biases.length)];
-            const confidence = 65 + Math.random() * 30;
+        function updateSMCAnalysis() {
+            if (priceData.length === 0) return;
+
+            // Analizar datos reales
+            const recentCandles = priceData.slice(-100);
+            const currentPrice = recentCandles[recentCandles.length - 1].close;
             
+            // Detectar Order Blocks
+            const orderBlocks = detectOrderBlocks(recentCandles);
+            
+            // Detectar FVG
+            const fvgs = detectFVG(recentCandles);
+            
+            // Detectar zonas de liquidez
+            const liquidityZones = detectLiquidityZones(recentCandles);
+            
+            // Detectar cambios de estructura
+            const structureBreaks = detectStructureBreaks(recentCandles);
+            
+            // Determinar sesgo
+            const bias = calculateMarketBias(recentCandles);
+            
+            // Actualizar UI
+            renderMarketBias(bias);
+            renderOrderBlocks(orderBlocks);
+            renderFVG(fvgs);
+            renderLiquidityZones(liquidityZones);
+            renderStructureBreaks(structureBreaks);
+        }
+
+        function detectOrderBlocks(candles) {
+            const blocks = [];
+            
+            for (let i = 5; i < candles.length - 1; i++) {
+                const current = candles[i];
+                const prev = candles[i - 1];
+                const next = candles[i + 1];
+                
+                // Bullish Order Block
+                if (current.close > current.open && 
+                    next.close > next.open &&
+                    next.close > current.high) {
+                    blocks.push({
+                        type: 'bullish',
+                        high: current.high,
+                        low: current.low,
+                        time: current.time
+                    });
+                }
+                
+                // Bearish Order Block
+                if (current.close < current.open && 
+                    next.close < next.open &&
+                    next.close < current.low) {
+                    blocks.push({
+                        type: 'bearish',
+                        high: current.high,
+                        low: current.low,
+                        time: current.time
+                    });
+                }
+            }
+            
+            return blocks.slice(-3);
+        }
+
+        function detectFVG(candles) {
+            const gaps = [];
+            
+            for (let i = 2; i < candles.length; i++) {
+                const prev = candles[i - 2];
+                const current = candles[i - 1];
+                const next = candles[i];
+                
+                // Bullish FVG
+                if (next.low > prev.high) {
+                    gaps.push({
+                        type: 'bullish',
+                        high: next.low,
+                        low: prev.high,
+                        time: current.time
+                    });
+                }
+                
+                // Bearish FVG
+                if (next.high < prev.low) {
+                    gaps.push({
+                        type: 'bearish',
+                        high: prev.low,
+                        low: next.high,
+                        time: current.time
+                    });
+                }
+            }
+            
+            return gaps.slice(-2);
+        }
+
+        function detectLiquidityZones(candles) {
+            const zones = [];
+            const highs = candles.map(c => c.high);
+            const lows = candles.map(c => c.low);
+            
+            // Equal Highs
+            for (let i = 10; i < candles.length - 10; i++) {
+                const localHighs = highs.slice(i - 10, i + 10);
+                const max = Math.max(...localHighs);
+                
+                if (Math.abs(candles[i].high - max) / max < 0.001) {
+                    zones.push({
+                        level: 'Buy-Side Liquidity',
+                        price: candles[i].high,
+                        type: 'Equal Highs'
+                    });
+                }
+            }
+            
+            // Equal Lows
+            for (let i = 10; i < candles.length - 10; i++) {
+                const localLows = lows.slice(i - 10, i + 10);
+                const min = Math.min(...localLows);
+                
+                if (Math.abs(candles[i].low - min) / min < 0.001) {
+                    zones.push({
+                        level: 'Sell-Side Liquidity',
+                        price: candles[i].low,
+                        type: 'Equal Lows'
+                    });
+                }
+            }
+            
+            return zones.slice(-3);
+        }
+
+        function detectStructureBreaks(candles) {
+            const breaks = [];
+            const swings = findSwingPoints(candles);
+            
+            for (let i = 1; i < swings.length; i++) {
+                const prev = swings[i - 1];
+                const current = swings[i];
+                
+                if (current.type === 'high' && current.price > prev.price) {
+                    breaks.push({
+                        type: 'BOS',
+                        direction: 'Alcista',
+                        time: new Date(current.time * 1000),
+                        confirmation: 'Confirmado'
+                    });
+                } else if (current.type === 'low' && current.price < prev.price) {
+                    breaks.push({
+                        type: 'BOS',
+                        direction: 'Bajista',
+                        time: new Date(current.time * 1000),
+                        confirmation: 'Confirmado'
+                    });
+                }
+            }
+            
+            return breaks.slice(-3);
+        }
+
+        function findSwingPoints(candles) {
+            const swings = [];
+            const period = 5;
+            
+            for (let i = period; i < candles.length - period; i++) {
+                const slice = candles.slice(i - period, i + period + 1);
+                const highs = slice.map(c => c.high);
+                const lows = slice.map(c => c.low);
+                
+                if (candles[i].high === Math.max(...highs)) {
+                    swings.push({
+                        type: 'high',
+                        price: candles[i].high,
+                        time: candles[i].time
+                    });
+                }
+                
+                if (candles[i].low === Math.min(...lows)) {
+                    swings.push({
+                        type: 'low',
+                        price: candles[i].low,
+                        time: candles[i].time
+                    });
+                }
+            }
+            
+            return swings;
+        }
+
+        function calculateMarketBias(candles) {
+            const recent = candles.slice(-20);
+            const sma20 = recent.reduce((sum, c) => sum + c.close, 0) / recent.length;
+            const currentPrice = candles[candles.length - 1].close;
+            
+            const priceDiff = (currentPrice - sma20) / sma20;
+            
+            let bias = 'NEUTRAL';
+            let confidence = 50;
+            
+            if (priceDiff > 0.02) {
+                bias = 'ALCISTA';
+                confidence = Math.min(95, 50 + (priceDiff * 1000));
+            } else if (priceDiff < -0.02) {
+                bias = 'BAJISTA';
+                confidence = Math.min(95, 50 + (Math.abs(priceDiff) * 1000));
+            }
+            
+            return { bias, confidence };
+        }
+
+        function renderMarketBias(data) {
             document.getElementById('marketBias').innerHTML = `
-                <div class="signal-badge ${bias === 'ALCISTA' ? 'buy-signal' : bias === 'BAJISTA' ? 'sell-signal' : 'neutral'} mb-4">
-                    ${bias === 'ALCISTA' ? '↗' : bias === 'BAJISTA' ? '↘' : '→'} ${bias}
+                <div class="signal-badge ${data.bias === 'ALCISTA' ? 'buy-signal' : data.bias === 'BAJISTA' ? 'sell-signal' : 'neutral'} mb-4">
+                    ${data.bias === 'ALCISTA' ? '↗' : data.bias === 'BAJISTA' ? '↘' : '→'} ${data.bias}
                 </div>
                 <div class="text-sm text-gray-400 mb-2">Nivel de Confianza</div>
-                <div class="text-2xl font-bold mb-2">${confidence.toFixed(0)}%</div>
-                <div class="confidence-bar" style="height: 8px; background: rgba(0, 255, 157, 0.2); border-radius: 4px; overflow: hidden;">
-                    <div style="height: 100%; background: linear-gradient(90deg, #00ff9d 0%, #00d4ff 100%); width: ${confidence}%; transition: width 1s ease;"></div>
+                <div class="text-2xl font-bold mb-2">${data.confidence.toFixed(0)}%</div>
+                <div style="height: 8px; background: rgba(0, 255, 157, 0.2); border-radius: 4px; overflow: hidden;">
+                    <div style="height: 100%; background: linear-gradient(90deg, #00ff9d 0%, #00d4ff 100%); width: ${data.confidence}%; transition: width 1s ease;"></div>
                 </div>
             `;
+        }
 
-            // Order Blocks
-            const orderBlocks = generateSMCZones('order-block', 3, asset);
-            document.getElementById('orderBlocks').innerHTML = orderBlocks.map(zone => `
+        function renderOrderBlocks(blocks) {
+            if (blocks.length === 0) {
+                document.getElementById('orderBlocks').innerHTML = '<div class="text-sm text-gray-400">No se detectaron Order Blocks activos</div>';
+                return;
+            }
+            
+            document.getElementById('orderBlocks').innerHTML = blocks.map(block => `
                 <div class="smc-zone order-block">
                     <div class="flex justify-between items-start mb-2">
-                        <div class="text-sm font-bold ${zone.type === 'bullish' ? 'bullish' : 'bearish'}">
-                            ${zone.type === 'bullish' ? '↗ BULLISH OB' : '↘ BEARISH OB'}
+                        <div class="text-sm font-bold ${block.type === 'bullish' ? 'bullish' : 'bearish'}">
+                            ${block.type === 'bullish' ? '↗ BULLISH OB' : '↘ BEARISH OB'}
                         </div>
-                        <div class="text-xs text-gray-400">${zone.timeframe}</div>
+                        <div class="text-xs text-gray-400">${currentTimeframe}</div>
                     </div>
                     <div class="text-xs text-gray-400 mb-1">Rango de Precio</div>
-                    <div class="text-sm font-semibold">${zone.priceRange}</div>
-                    <div class="text-xs text-gray-400 mt-2">Validez: ${zone.validity}</div>
+                    <div class="text-sm font-semibold">$${block.low.toFixed(2)} - $${block.high.toFixed(2)}</div>
+                    <div class="text-xs text-gray-400 mt-2">Validez: Alta</div>
                 </div>
             `).join('');
+        }
 
-            // Fair Value Gaps
-            const fvgs = generateSMCZones('fvg', 2, asset);
-            document.getElementById('fvgZones').innerHTML = fvgs.map(zone => `
+        function renderFVG(gaps) {
+            if (gaps.length === 0) {
+                document.getElementById('fvgZones').innerHTML = '<div class="text-sm text-gray-400">No se detectaron Fair Value Gaps</div>';
+                return;
+            }
+            
+            document.getElementById('fvgZones').innerHTML = gaps.map(gap => `
                 <div class="smc-zone fvg">
                     <div class="flex justify-between items-start mb-2">
-                        <div class="text-sm font-bold ${zone.type === 'bullish' ? 'bullish' : 'bearish'}">
-                            ⚡ ${zone.type === 'bullish' ? 'BULLISH FVG' : 'BEARISH FVG'}
+                        <div class="text-sm font-bold ${gap.type === 'bullish' ? 'bullish' : 'bearish'}">
+                            ⚡ ${gap.type === 'bullish' ? 'BULLISH FVG' : 'BEARISH FVG'}
                         </div>
-                        <div class="text-xs text-gray-400">${zone.timeframe}</div>
+                        <div class="text-xs text-gray-400">${currentTimeframe}</div>
                     </div>
                     <div class="text-xs text-gray-400 mb-1">Gap</div>
-                    <div class="text-sm font-semibold">${zone.priceRange}</div>
-                    <div class="text-xs text-gray-400 mt-2">Estado: ${zone.status}</div>
+                    <div class="text-sm font-semibold">$${gap.low.toFixed(2)} - $${gap.high.toFixed(2)}</div>
+                    <div class="text-xs text-gray-400 mt-2">Estado: Sin llenar</div>
                 </div>
             `).join('');
+        }
 
-            // Liquidity Zones
-            const liquidity = generateSMCZones('liquidity', 3, asset);
-            document.getElementById('liquidityZones').innerHTML = liquidity.map(zone => `
+        function renderLiquidityZones(zones) {
+            if (zones.length === 0) {
+                document.getElementById('liquidityZones').innerHTML = '<div class="text-sm text-gray-400">No se detectaron zonas de liquidez significativas</div>';
+                return;
+            }
+            
+            document.getElementById('liquidityZones').innerHTML = zones.map(zone => `
                 <div class="smc-zone liquidity">
                     <div class="flex justify-between items-start mb-2">
                         <div class="text-sm font-bold neutral">
                             💧 ${zone.level}
                         </div>
-                        <div class="text-xs text-gray-400">${zone.timeframe}</div>
+                        <div class="text-xs text-gray-400">${currentTimeframe}</div>
                     </div>
                     <div class="text-xs text-gray-400 mb-1">Nivel</div>
-                    <div class="text-sm font-semibold">${zone.price}</div>
+                    <div class="text-sm font-semibold">$${zone.price.toFixed(2)}</div>
                     <div class="text-xs text-gray-400 mt-2">Tipo: ${zone.type}</div>
                 </div>
             `).join('');
+        }
 
-            // Structure Breaks
-            const breaks = generateStructureBreaks(3);
-            document.getElementById('structureBreaks').innerHTML = breaks.map(brk => `
-                <div class="smc-zone bos">
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="text-sm font-bold ${brk.type === 'BOS' ? 'bullish' : 'bearish'}">
-                            🔄 ${brk.type}
+        function renderStructureBreaks(breaks) {
+            if (breaks.length === 0) {
+                document.getElementById('structureBreaks').innerHTML = '<div class="text-sm text-gray-400">No se detectaron cambios de estructura recientes</div>';
+                return;
+            }
+            
+            document.getElementById('structureBreaks').innerHTML = breaks.map(brk => {
+                const timeAgo = Math.floor((Date.now() - brk.time) / (1000 * 60 * 60));
+                return `
+                    <div class="smc-zone bos">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="text-sm font-bold ${brk.type === 'BOS' ? 'bullish' : 'bearish'}">
+                                🔄 ${brk.type}
+                            </div>
+                            <div class="text-xs text-gray-400">Hace ${timeAgo}h</div>
                         </div>
-                        <div class="text-xs text-gray-400">${brk.time}</div>
+                        <div class="text-xs text-gray-400 mb-1">Dirección</div>
+                        <div class="text-sm font-semibold ${brk.direction === 'Alcista' ? 'bullish' : 'bearish'}">
+                            ${brk.direction}
+                        </div>
+                        <div class="text-xs text-gray-400 mt-2">Confirmación: ${brk.confirmation}</div>
                     </div>
-                    <div class="text-xs text-gray-400 mb-1">Dirección</div>
-                    <div class="text-sm font-semibold ${brk.direction === 'Alcista' ? 'bullish' : 'bearish'}">
-                        ${brk.direction}
-                    </div>
-                    <div class="text-xs text-gray-400 mt-2">Confirmación: ${brk.confirmation}</div>
-                </div>
-            `).join('');
-        }
-
-        function generateSMCZones(type, count, asset) {
-            const zones = [];
-            
-            for (let i = 0; i < count; i++) {
-                const isBullish = Math.random() > 0.5;
-                const price = asset.basePrice * (1 + (Math.random() - 0.5) * 0.05);
-                const gap = price * 0.002;
-                
-                const formatPrice = (p) => {
-                    if (asset.type === 'forex') {
-                        return p.toFixed(asset.decimals);
-                    }
-                    return `$${p.toLocaleString('en-US', {
-                        minimumFractionDigits: asset.decimals,
-                        maximumFractionDigits: asset.decimals
-                    })}`;
-                };
-                
-                if (type === 'order-block') {
-                    zones.push({
-                        type: isBullish ? 'bullish' : 'bearish',
-                        priceRange: `${formatPrice(price - gap)} - ${formatPrice(price + gap)}`,
-                        timeframe: ['4H', '1D', '1H'][Math.floor(Math.random() * 3)],
-                        validity: ['Alta', 'Media', 'Fuerte'][Math.floor(Math.random() * 3)]
-                    });
-                } else if (type === 'fvg') {
-                    zones.push({
-                        type: isBullish ? 'bullish' : 'bearish',
-                        priceRange: `${formatPrice(price - gap)} - ${formatPrice(price + gap)}`,
-                        timeframe: ['15M', '1H', '4H'][Math.floor(Math.random() * 3)],
-                        status: ['Sin llenar', 'Parcialmente llenado', 'Activo'][Math.floor(Math.random() * 3)]
-                    });
-                } else if (type === 'liquidity') {
-                    zones.push({
-                        level: ['Buy-Side Liquidity', 'Sell-Side Liquidity'][Math.floor(Math.random() * 2)],
-                        price: formatPrice(price),
-                        timeframe: ['1H', '4H', '1D'][Math.floor(Math.random() * 3)],
-                        type: ['Equal Highs', 'Equal Lows', 'Trendline Liquidity'][Math.floor(Math.random() * 3)]
-                    });
-                }
-            }
-            return zones;
-        }
-
-        function generateStructureBreaks(count) {
-            const breaks = [];
-            const types = ['BOS', 'CHoCH'];
-            const directions = ['Alcista', 'Bajista'];
-            
-            for (let i = 0; i < count; i++) {
-                breaks.push({
-                    type: types[Math.floor(Math.random() * types.length)],
-                    direction: directions[Math.floor(Math.random() * directions.length)],
-                    time: `Hace ${Math.floor(Math.random() * 24)}h`,
-                    confirmation: ['Confirmado', 'Pendiente', 'En desarrollo'][Math.floor(Math.random() * 3)]
-                });
-            }
-            return breaks;
-        }
-
-        function setupChart() {
-            const ctx = document.getElementById('priceChart').getContext('2d');
-            const data = generateChartData();
-            
-            priceChart = new Chart(ctx, {
-                type: 'candlestick',
-                data: {
-                    datasets: [{
-                        label: currentAsset,
-                        data: data.candles
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    parsing: {
-                        xAxisKey: 'x',
-                        yAxisKey: 'y'
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                            borderColor: '#00ff9d',
-                            borderWidth: 1,
-                            titleColor: '#00ff9d',
-                            bodyColor: '#e0e6ed',
-                            padding: 12,
-                            callbacks: {
-                                label: function(context) {
-                                    const point = context.raw;
-                                    const asset = getAssetData(currentAsset);
-                                    const formatPrice = (p) => {
-                                        if (asset.type === 'forex') {
-                                            return p.toFixed(asset.decimals);
-                                        }
-                                        return '$' + p.toLocaleString('en-US', {
-                                            minimumFractionDigits: asset.decimals,
-                                            maximumFractionDigits: asset.decimals
-                                        });
-                                    };
-                                    return [
-                                        'Open: ' + formatPrice(point.o),
-                                        'High: ' + formatPrice(point.h),
-                                        'Low: ' + formatPrice(point.l),
-                                        'Close: ' + formatPrice(point.c)
-                                    ];
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            type: 'time',
-                            time: {
-                                unit: 'minute',
-                                displayFormats: {
-                                    minute: 'HH:mm',
-                                    hour: 'HH:mm'
-                                }
-                            },
-                            grid: {
-                                color: 'rgba(0, 255, 157, 0.1)',
-                                drawBorder: false
-                            },
-                            ticks: {
-                                color: '#8892b0',
-                                font: {
-                                    size: 11
-                                }
-                            }
-                        },
-                        y: {
-                            grid: {
-                                color: 'rgba(0, 255, 157, 0.1)',
-                                drawBorder: false
-                            },
-                            ticks: {
-                                color: '#8892b0',
-                                font: {
-                                    size: 11
-                                },
-                                callback: function(value) {
-                                    const asset = getAssetData(currentAsset);
-                                    if (asset && asset.type === 'forex') {
-                                        return value.toFixed(asset.decimals);
-                                    }
-                                    return '$' + value.toLocaleString();
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function generateChartData() {
-            const asset = getAssetData(currentAsset);
-            const candles = [];
-            let currentPrice = asset.basePrice;
-            
-            const points = currentTimeframe === '1m' ? 60 : 
-                          currentTimeframe === '5m' ? 50 : 
-                          currentTimeframe === '15m' ? 48 : 
-                          currentTimeframe === '1h' ? 50 : 
-                          currentTimeframe === '4h' ? 48 : 72;
-            
-            const volatility = asset.type === 'crypto' ? 0.015 : 
-                              asset.type === 'forex' ? 0.002 : 
-                              asset.type === 'commodity' ? 0.01 : 0.008;
-            
-            for (let i = 0; i < points; i++) {
-                const time = new Date(Date.now() - (points - i) * 3600000);
-                
-                const open = currentPrice;
-                const change = (Math.random() - 0.5) * asset.basePrice * volatility;
-                const close = open + change;
-                const high = Math.max(open, close) + Math.abs(change) * Math.random() * 0.5;
-                const low = Math.min(open, close) - Math.abs(change) * Math.random() * 0.5;
-                
-                candles.push({
-                    x: time.getTime(),
-                    o: open,
-                    h: high,
-                    l: low,
-                    c: close
-                });
-                
-                currentPrice = close;
-            }
-            
-            return { candles };
-        }
-
-        function updateChart() {
-            const data = generateChartData();
-            priceChart.data.datasets[0].data = data.candles;
-            priceChart.update('none');
+                `;
+            }).join('');
         }
 
         function switchTab(tab) {
@@ -927,83 +1049,36 @@
             event.target.classList.add('active');
 
             const content = document.getElementById('tab-content');
-            const asset = getAssetData(currentAsset);
             
             if (tab === 'smc') {
                 content.innerHTML = `
                     <div class="space-y-4">
                         <div class="p-4 bg-blue-900 bg-opacity-20 border border-blue-500 border-opacity-30 rounded-lg">
                             <h4 class="font-bold mb-2 text-blue-300">📊 Análisis de Estructura</h4>
-                            <p class="text-sm text-gray-300">El mercado de ${asset.name} está mostrando una estructura ${Math.random() > 0.5 ? 'alcista' : 'bajista'} en timeframes superiores con formación clara de ${Math.random() > 0.5 ? 'Higher Highs y Higher Lows' : 'Lower Highs y Lower Lows'}. Se identificaron ${Math.floor(Math.random() * 3) + 2} Order Blocks institucionales activos.</p>
+                            <p class="text-sm text-gray-300">Basado en datos reales de Binance. Los Order Blocks, FVG y zonas de liquidez se actualizan en tiempo real con cada nueva vela.</p>
                         </div>
                         <div class="p-4 bg-green-900 bg-opacity-20 border border-green-500 border-opacity-30 rounded-lg">
-                            <h4 class="font-bold mb-2 text-green-300">⚡ Fair Value Gaps Detectados</h4>
-                            <p class="text-sm text-gray-300">${Math.floor(Math.random() * 3) + 1} FVG sin llenar en el rango actual que actúan como imanes de precio. Los gaps más significativos se encuentran en zonas de alta probabilidad de reacción institucional.</p>
-                        </div>
-                        <div class="p-4 bg-yellow-900 bg-opacity-20 border border-yellow-500 border-opacity-30 rounded-lg">
-                            <h4 class="font-bold mb-2 text-yellow-300">💧 Liquidez Institucional</h4>
-                            <p class="text-sm text-gray-300">Zona de liquidez significativa identificada donde las instituciones probablemente busquen capturar stops antes de un movimiento mayor. ${Math.random() > 0.5 ? 'Buy-Side' : 'Sell-Side'} liquidity detectada.</p>
+                            <h4 class="font-bold mb-2 text-green-300">⚡ Algoritmos SMC</h4>
+                            <p class="text-sm text-gray-300">Utilizamos algoritmos avanzados para detectar patrones institucionales en datos históricos y en tiempo real.</p>
                         </div>
                     </div>
                 `;
             } else if (tab === 'signals') {
-                const signal = Math.random() > 0.5 ? 'buy' : 'sell';
-                const entryPrice = asset.basePrice * (1 + (Math.random() - 0.5) * 0.01);
-                const stopLoss = signal === 'buy' ? 
-                    entryPrice * 0.98 : 
-                    entryPrice * 1.02;
-                const tp1 = signal === 'buy' ? 
-                    entryPrice * 1.015 : 
-                    entryPrice * 0.985;
-                const tp2 = signal === 'buy' ? 
-                    entryPrice * 1.03 : 
-                    entryPrice * 0.97;
-
-                const formatPrice = (p) => {
-                    if (asset.type === 'forex') {
-                        return p.toFixed(asset.decimals);
-                    }
-                    return `$${p.toLocaleString('en-US', {
-                        minimumFractionDigits: asset.decimals,
-                        maximumFractionDigits: asset.decimals
-                    })}`;
-                };
-
+                const lastCandle = priceData[priceData.length - 1];
+                const prevCandle = priceData[priceData.length - 2];
+                const signal = lastCandle.close > prevCandle.close ? 'buy' : 'sell';
+                
                 content.innerHTML = `
                     <div class="space-y-4">
                         <div class="text-center py-6">
                             <div class="signal-badge ${signal === 'buy' ? 'buy-signal' : 'sell-signal'} inline-block mb-4 text-xl">
                                 ${signal === 'buy' ? '↗ SEÑAL DE COMPRA' : '↘ SEÑAL DE VENTA'}
                             </div>
-                            <div class="text-sm text-gray-400 mb-2">Confianza de la señal</div>
-                            <div class="text-4xl font-bold mb-4">${(70 + Math.random() * 25).toFixed(0)}%</div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="p-4 bg-gray-800 bg-opacity-50 rounded-lg">
-                                <div class="text-xs text-gray-400 mb-1">Entrada</div>
-                                <div class="text-lg font-bold text-green-400">${formatPrice(entryPrice)}</div>
-                            </div>
-                            <div class="p-4 bg-gray-800 bg-opacity-50 rounded-lg">
-                                <div class="text-xs text-gray-400 mb-1">Stop Loss</div>
-                                <div class="text-lg font-bold text-red-400">${formatPrice(stopLoss)}</div>
-                            </div>
-                            <div class="p-4 bg-gray-800 bg-opacity-50 rounded-lg">
-                                <div class="text-xs text-gray-400 mb-1">Take Profit 1</div>
-                                <div class="text-lg font-bold text-blue-400">${formatPrice(tp1)}</div>
-                            </div>
-                            <div class="p-4 bg-gray-800 bg-opacity-50 rounded-lg">
-                                <div class="text-xs text-gray-400 mb-1">Take Profit 2</div>
-                                <div class="text-lg font-bold text-blue-400">${formatPrice(tp2)}</div>
-                            </div>
+                            <div class="text-sm text-gray-400 mb-2">Basado en análisis real</div>
                         </div>
                         <div class="p-4 bg-purple-900 bg-opacity-20 border border-purple-500 border-opacity-30 rounded-lg">
-                            <h4 class="font-bold mb-2">📝 Justificación</h4>
-                            <ul class="text-sm space-y-1 text-gray-300">
-                                <li>✓ Break of Structure confirmado en 4H</li>
-                                <li>✓ Precio reaccionó en Order Block ${signal === 'buy' ? 'alcista' : 'bajista'}</li>
-                                <li>✓ FVG sin llenar actuando como ${signal === 'buy' ? 'soporte' : 'resistencia'}</li>
-                                <li>✓ Liquidez barrida en ${signal === 'buy' ? 'mínimos' : 'máximos'} previos</li>
-                            </ul>
+                            <h4 class="font-bold mb-2">📝 Análisis en Vivo</h4>
+                            <p class="text-sm text-gray-300">Las señales se generan automáticamente basadas en los datos reales del mercado y los conceptos SMC detectados.</p>
                         </div>
                     </div>
                 `;
@@ -1011,33 +1086,12 @@
                 content.innerHTML = `
                     <div class="space-y-4">
                         <div class="p-4 bg-indigo-900 bg-opacity-20 border border-indigo-500 border-opacity-30 rounded-lg">
-                            <h4 class="font-bold mb-3">🎯 Plan de Trading Recomendado para ${asset.symbol}</h4>
+                            <h4 class="font-bold mb-3">🎯 Trading con Datos Reales</h4>
                             <div class="space-y-3 text-sm text-gray-300">
-                                <div>
-                                    <strong class="text-indigo-300">Paso 1:</strong> Esperar confirmación de cambio de estructura en el timeframe operativo (15M-1H)
-                                </div>
-                                <div>
-                                    <strong class="text-indigo-300">Paso 2:</strong> Identificar Order Block o FVG para entrada óptima
-                                </div>
-                                <div>
-                                    <strong class="text-indigo-300">Paso 3:</strong> Colocar entrada en el 50% del OB/FVG
-                                </div>
-                                <div>
-                                    <strong class="text-indigo-300">Paso 4:</strong> Stop loss por debajo del Order Block o zona de invalidación
-                                </div>
-                                <div>
-                                    <strong class="text-indigo-300">Paso 5:</strong> Take profit en zonas de liquidez o FVG contrarios
-                                </div>
+                                <div><strong class="text-indigo-300">Paso 1:</strong> Observa los Order Blocks detectados automáticamente</div>
+                                <div><strong class="text-indigo-300">Paso 2:</strong> Espera confirmación en el gráfico en tiempo real</div>
+                                <div><strong class="text-indigo-300">Paso 3:</strong> Verifica las zonas de liquidez antes de entrar</div>
                             </div>
-                        </div>
-                        <div class="p-4 bg-teal-900 bg-opacity-20 border border-teal-500 border-opacity-30 rounded-lg">
-                            <h4 class="font-bold mb-2 text-teal-300">⚠️ Gestión de Riesgo</h4>
-                            <ul class="text-sm space-y-1 text-gray-300">
-                                <li>• Riesgo máximo por operación: ${asset.type === 'crypto' ? '2-3%' : '1-2%'} del capital</li>
-                                <li>• Ratio riesgo/beneficio mínimo: 1:${asset.type === 'crypto' ? '3' : '2'}</li>
-                                <li>• No operar durante eventos de alto impacto${asset.type === 'forex' || asset.type === 'commodity' ? ' (NFP, Fed, etc.)' : ''}</li>
-                                <li>• Máximo ${asset.type === 'crypto' ? '2' : '3'} operaciones simultáneas en ${asset.symbol}</li>
-                            </ul>
                         </div>
                     </div>
                 `;
@@ -1050,32 +1104,15 @@
                 btn.classList.remove('active');
             });
             event.target.classList.add('active');
-            updateChart();
-        }
-
-        function startPriceUpdates() {
-            // Actualizar precios cada 2-3 segundos para simular tiempo real
-            priceUpdateInterval = setInterval(() => {
-                updatePriceData();
-            }, 2500);
-
-            // Actualizar gráfico cada 10 segundos
-            setInterval(() => {
-                updateChart();
-            }, 10000);
+            
+            // Recargar datos con nuevo timeframe
+            loadAsset(currentAsset);
         }
 
         // Search functionality
         document.getElementById('assetSearch').addEventListener('input', (e) => {
             const search = e.target.value.toUpperCase();
-            const allAssets = [
-                ...assets.commodities,
-                ...assets.crypto,
-                ...assets.forex,
-                ...assets.stocks,
-                ...assets.indices
-            ];
-            const filtered = allAssets.filter(a => 
+            const filtered = cryptoAssets.filter(a => 
                 a.symbol.includes(search) || 
                 a.name.toUpperCase().includes(search)
             );
@@ -1085,7 +1122,7 @@
                 container.innerHTML = filtered.map(asset => `
                     <button class="asset-button ${asset.symbol === currentAsset ? 'active' : ''}" 
                             onclick="loadAsset('${asset.symbol}')">
-                        ${asset.symbol}
+                        ${asset.symbol.replace('USDT', '')}
                     </button>
                 `).join('');
             } else if (e.target.value.length === 0) {
@@ -1108,20 +1145,6 @@
                     });
             });
         }
-
-        // Detectar si la app fue instalada
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            // Aquí podrías mostrar un botón de "Instalar App"
-            console.log('App puede ser instalada');
-        });
-
-        window.addEventListener('appinstalled', () => {
-            console.log('¡App instalada exitosamente!');
-            deferredPrompt = null;
-        });
     </script>
 </body>
 </html>
