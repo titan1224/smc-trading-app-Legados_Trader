@@ -626,10 +626,7 @@
             { symbol: 'AMZN', name: 'Amazon.com, Inc.', type: 'stock', displayName: 'AMZN', source: 'finnhub' },
             { symbol: 'META', name: 'Meta Platforms Inc Class A', type: 'stock', displayName: 'META', source: 'finnhub' },
             { symbol: 'NFLX', name: 'Netflix, Inc.', type: 'stock', displayName: 'NFLX', source: 'finnhub' },
-            { symbol: 'AMD', name: 'Advanced Micro Devices, Inc.', type: 'stock', displayName: 'AMD', source: 'finnhub' },
-            
-            // Commodities
-            { symbol: 'BTCUSDT', name: 'Gold / USD (Proxy)', type: 'commodity', displayName: 'XAU/USD', source: 'binance', isProxy: true }
+            { symbol: 'AMD', name: 'Advanced Micro Devices, Inc.', type: 'stock', displayName: 'AMD', source: 'finnhub' }
         ];
 
         const timeframeMap = {
@@ -727,8 +724,13 @@
             
             container.innerHTML = assets.map(asset => {
                 const isFavorite = favorites.includes(asset.symbol);
+                // Use unique identifier for stocks vs crypto/forex
+                const buttonSymbol = asset.type === 'stock' ? asset.symbol : asset.symbol;
+                const isActive = (asset.type === 'stock' && asset.symbol === currentAsset) || 
+                                (asset.type !== 'stock' && asset.symbol === currentAsset);
+                
                 return `
-                    <button class="asset-button ${asset.symbol === currentAsset ? 'active' : ''}" 
+                    <button class="asset-button ${isActive ? 'active' : ''}" 
                             onclick="loadAsset('${asset.symbol}')">
                         <span class="favorite-star ${isFavorite ? 'active' : ''}" 
                               onclick="toggleFavorite('${asset.symbol}', event)">
@@ -783,11 +785,16 @@
         }
 
         async function loadAsset(symbol) {
-            currentAsset = symbol;
-            const asset = allAssets.find(a => a.symbol === symbol);
+            // Find the exact asset (not proxy duplicates)
+            const asset = allAssets.find(a => a.symbol === symbol && a.displayName);
             
-            if (!asset) return;
+            if (!asset) {
+                console.error('Asset not found:', symbol);
+                return;
+            }
 
+            currentAsset = symbol;
+            
             document.getElementById('currentAsset').innerHTML = `
                 ${asset.displayName}
                 <span class="asset-type-badge badge-${asset.type}">${asset.type.toUpperCase()}</span>
@@ -797,13 +804,22 @@
             renderAssetButtons();
             
             // Cerrar websockets anteriores
-            if (websocket) websocket.close();
-            if (stockWebsocket) stockWebsocket.close();
+            if (websocket) {
+                websocket.close();
+                websocket = null;
+            }
+            if (stockWebsocket) {
+                stockWebsocket.close();
+                stockWebsocket = null;
+            }
+            
+            // Clear previous data
+            priceData = [];
             
             // Cargar datos según la fuente
-            if (asset.source === 'finnhub') {
+            if (asset.source === 'finnhub' && asset.type === 'stock') {
                 await loadStockData(symbol);
-            } else {
+            } else if (asset.source === 'binance') {
                 await loadCryptoData(symbol);
             }
             
