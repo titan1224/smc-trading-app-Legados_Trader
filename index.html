@@ -575,9 +575,9 @@
 
     <script>
         // ============================================
-        // CONFIGURACIÓN - AGREGA TU API KEY AQUÍ
+        // CONFIGURACIÓN - API KEY CONFIGURADA
         // ============================================
-        const FINNHUB_API_KEY = 'ctbhkepr01qnqbqhrl5gctbhkepr01qnqbqhrl60'; // ← REEMPLAZA CON TU API KEY de finnhub.io
+        const FINNHUB_API_KEY = 'd689iihr01qi2if79vo0d689iihr01qi2if79vog';
         
         // APIs
         const BINANCE_WS = 'wss://stream.binance.com:9443/ws/';
@@ -785,14 +785,27 @@
         }
 
         async function loadAsset(symbol) {
-            // Find the exact asset (not proxy duplicates)
-            const asset = allAssets.find(a => a.symbol === symbol && a.displayName);
+            console.log('Loading asset:', symbol);
+            
+            // CRITICAL: Find asset by matching BOTH symbol AND checking it's the right type
+            // For stocks, we need to find the one with source='finnhub'
+            // For crypto/forex, we need to find the one with source='binance'
+            let asset = null;
+            
+            // First, try to find a stock with this exact symbol
+            asset = allAssets.find(a => a.symbol === symbol && a.type === 'stock' && a.source === 'finnhub');
+            
+            // If not found as stock, try crypto/forex from binance
+            if (!asset) {
+                asset = allAssets.find(a => a.symbol === symbol && a.source === 'binance');
+            }
             
             if (!asset) {
                 console.error('Asset not found:', symbol);
                 return;
             }
 
+            console.log('Found asset:', asset.displayName, asset.type, asset.source);
             currentAsset = symbol;
             
             document.getElementById('currentAsset').innerHTML = `
@@ -815,11 +828,19 @@
             
             // Clear previous data
             priceData = [];
+            candleSeries.setData([]);
+            
+            // Show loading
+            document.getElementById('currentPrice').textContent = '$...';
+            document.getElementById('priceChange').textContent = '...';
             
             // Cargar datos según la fuente
-            if (asset.source === 'finnhub' && asset.type === 'stock') {
+            console.log('Loading data from source:', asset.source);
+            if (asset.source === 'finnhub') {
+                console.log('Fetching stock data for:', symbol);
                 await loadStockData(symbol);
             } else if (asset.source === 'binance') {
+                console.log('Fetching crypto data for:', symbol);
                 await loadCryptoData(symbol);
             }
             
@@ -829,17 +850,21 @@
 
         async function loadStockData(symbol) {
             try {
+                console.log('Fetching stock data from Finnhub for:', symbol);
                 const resolution = finnhubResolutionMap[currentTimeframe];
                 const to = Math.floor(Date.now() / 1000);
                 const from = to - (30 * 24 * 60 * 60); // 30 días
                 
-                const response = await fetch(
-                    `${FINNHUB_API}/stock/candle?symbol=${symbol}&resolution=${resolution}&from=${from}&to=${to}&token=${FINNHUB_API_KEY}`
-                );
+                const url = `${FINNHUB_API}/stock/candle?symbol=${symbol}&resolution=${resolution}&from=${from}&to=${to}&token=${FINNHUB_API_KEY}`;
+                console.log('Finnhub URL:', url.replace(FINNHUB_API_KEY, 'API_KEY_HIDDEN'));
+                
+                const response = await fetch(url);
+                console.log('Response status:', response.status);
                 
                 const data = await response.json();
+                console.log('Finnhub response:', data);
                 
-                if (data.s === 'ok') {
+                if (data.s === 'ok' && data.t && data.t.length > 0) {
                     priceData = data.t.map((time, i) => ({
                         time: time,
                         open: data.o[i],
@@ -849,6 +874,7 @@
                         volume: data.v[i]
                     }));
                     
+                    console.log('Loaded', priceData.length, 'candles');
                     candleSeries.setData(priceData);
                     
                     const lastCandle = priceData[priceData.length - 1];
@@ -859,9 +885,13 @@
                     
                     // Obtener quote actual
                     await getStockQuote(symbol);
+                } else {
+                    console.error('Finnhub returned error or no data:', data);
+                    alert('Error: No se pudieron obtener datos de ' + symbol + '. Verifica tu API key de Finnhub.');
                 }
             } catch (error) {
                 console.error('Error cargando datos de acción:', error);
+                alert('Error al cargar datos: ' + error.message);
             }
         }
 
