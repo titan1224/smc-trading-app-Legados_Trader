@@ -113,7 +113,37 @@
         .glass-card:hover {
             border-color: rgba(0, 255, 157, 0.4);
             box-shadow: 0 0 40px rgba(0, 255, 157, 0.15);
-            transform: translateY(-2px);
+        }
+
+        .category-btn {
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid rgba(0, 255, 157, 0.3);
+            color: #8892b0;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .category-btn:hover {
+            background: rgba(0, 255, 157, 0.1);
+            border-color: #00ff9d;
+            color: #00ff9d;
+            box-shadow: 0 0 15px rgba(0, 255, 157, 0.2);
+        }
+
+        .category-btn.active {
+            background: linear-gradient(135deg, #00ff9d 0%, #00d4ff 100%);
+            color: #0a0e1a;
+            border-color: transparent;
+            box-shadow: 0 0 25px rgba(0, 255, 157, 0.4);
         }
 
         .asset-button {
@@ -128,6 +158,7 @@
             font-size: 0.85rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
+            position: relative;
         }
 
         .asset-button:hover {
@@ -142,6 +173,25 @@
             color: #0a0e1a;
             border-color: transparent;
             box-shadow: 0 0 30px rgba(0, 255, 157, 0.5);
+        }
+
+        .favorite-star {
+            position: absolute;
+            top: 0.25rem;
+            right: 0.25rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+
+        .favorite-star:hover {
+            transform: scale(1.3);
+        }
+
+        .favorite-star.active {
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
         }
 
         .bullish {
@@ -312,8 +362,6 @@
 
         .badge-crypto { background: rgba(255, 165, 0, 0.2); color: #ffa500; }
         .badge-forex { background: rgba(0, 212, 255, 0.2); color: #00d4ff; }
-        .badge-stock { background: rgba(138, 43, 226, 0.2); color: #8a2be2; }
-        .badge-index { background: rgba(255, 215, 0, 0.2); color: #ffd700; }
         .badge-commodity { background: rgba(0, 255, 157, 0.2); color: #00ff9d; }
 
         #tvChart {
@@ -339,6 +387,15 @@
             40% { content: '..'; }
             60%, 100% { content: '...'; }
         }
+
+        .category-count {
+            background: rgba(0, 255, 157, 0.2);
+            color: #00ff9d;
+            padding: 0.15rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
     </style>
 </head>
 <body>
@@ -361,11 +418,42 @@
             </div>
         </div>
 
-        <!-- Search & Quick Access -->
+        <!-- Category Filters -->
         <div class="glass-card mb-6">
-            <div class="mb-4">
-                <input type="text" id="assetSearch" class="search-box" placeholder="Buscar activo... (ej: BTCUSDT, ETHUSDT, BNBUSDT)">
+            <div class="flex gap-3 mb-4 flex-wrap">
+                <button class="category-btn active" onclick="filterCategory('all')">
+                    <span>🌐</span>
+                    <span>Todos</span>
+                    <span class="category-count" id="count-all">0</span>
+                </button>
+                <button class="category-btn" onclick="filterCategory('favorites')">
+                    <span>⭐</span>
+                    <span>Favoritos</span>
+                    <span class="category-count" id="count-favorites">0</span>
+                </button>
+                <button class="category-btn" onclick="filterCategory('crypto')">
+                    <span>₿</span>
+                    <span>Crypto</span>
+                    <span class="category-count" id="count-crypto">0</span>
+                </button>
+                <button class="category-btn" onclick="filterCategory('forex')">
+                    <span>💱</span>
+                    <span>Forex</span>
+                    <span class="category-count" id="count-forex">0</span>
+                </button>
+                <button class="category-btn" onclick="filterCategory('commodity')">
+                    <span>🥇</span>
+                    <span>Commodities</span>
+                    <span class="category-count" id="count-commodity">0</span>
+                </button>
             </div>
+
+            <!-- Search -->
+            <div class="mb-4">
+                <input type="text" id="assetSearch" class="search-box" placeholder="🔍 Buscar activo por nombre o símbolo...">
+            </div>
+
+            <!-- Asset Buttons -->
             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3" id="assetButtons">
                 <!-- Botones generados dinámicamente -->
             </div>
@@ -434,9 +522,7 @@
                         <button class="tab-button" onclick="switchTab('strategy')">Estrategia</button>
                     </div>
 
-                    <div id="tab-content">
-                        <!-- Content generated dynamically -->
-                    </div>
+                    <div id="tab-content"></div>
                 </div>
             </div>
 
@@ -496,28 +582,39 @@
         let currentAsset = 'BTCUSDT';
         let currentTimeframe = '1h';
         let currentTab = 'smc';
+        let currentCategory = 'all';
         let chart = null;
         let candleSeries = null;
         let websocket = null;
         let priceData = [];
+        let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
 
-        // Asset database - Solo crypto por ahora (Binance API)
-        const cryptoAssets = [
-            { symbol: 'BTCUSDT', name: 'Bitcoin / USDT', type: 'crypto' },
-            { symbol: 'ETHUSDT', name: 'Ethereum / USDT', type: 'crypto' },
-            { symbol: 'BNBUSDT', name: 'Binance Coin / USDT', type: 'crypto' },
-            { symbol: 'SOLUSDT', name: 'Solana / USDT', type: 'crypto' },
-            { symbol: 'XRPUSDT', name: 'Ripple / USDT', type: 'crypto' },
-            { symbol: 'ADAUSDT', name: 'Cardano / USDT', type: 'crypto' },
-            { symbol: 'DOGEUSDT', name: 'Dogecoin / USDT', type: 'crypto' },
-            { symbol: 'MATICUSDT', name: 'Polygon / USDT', type: 'crypto' },
-            { symbol: 'DOTUSDT', name: 'Polkadot / USDT', type: 'crypto' },
-            { symbol: 'AVAXUSDT', name: 'Avalanche / USDT', type: 'crypto' },
-            { symbol: 'LINKUSDT', name: 'Chainlink / USDT', type: 'crypto' },
-            { symbol: 'UNIUSDT', name: 'Uniswap / USDT', type: 'crypto' }
+        // Base de datos de activos expandida
+        const allAssets = [
+            // Crypto
+            { symbol: 'BTCUSDT', name: 'Bitcoin', type: 'crypto', displayName: 'BTC' },
+            { symbol: 'ETHUSDT', name: 'Ethereum', type: 'crypto', displayName: 'ETH' },
+            { symbol: 'BNBUSDT', name: 'Binance Coin', type: 'crypto', displayName: 'BNB' },
+            { symbol: 'SOLUSDT', name: 'Solana', type: 'crypto', displayName: 'SOL' },
+            { symbol: 'XRPUSDT', name: 'Ripple', type: 'crypto', displayName: 'XRP' },
+            { symbol: 'ADAUSDT', name: 'Cardano', type: 'crypto', displayName: 'ADA' },
+            { symbol: 'DOGEUSDT', name: 'Dogecoin', type: 'crypto', displayName: 'DOGE' },
+            { symbol: 'MATICUSDT', name: 'Polygon', type: 'crypto', displayName: 'MATIC' },
+            { symbol: 'DOTUSDT', name: 'Polkadot', type: 'crypto', displayName: 'DOT' },
+            { symbol: 'AVAXUSDT', name: 'Avalanche', type: 'crypto', displayName: 'AVAX' },
+            { symbol: 'LINKUSDT', name: 'Chainlink', type: 'crypto', displayName: 'LINK' },
+            { symbol: 'UNIUSDT', name: 'Uniswap', type: 'crypto', displayName: 'UNI' },
+            { symbol: 'ATOMUSDT', name: 'Cosmos', type: 'crypto', displayName: 'ATOM' },
+            { symbol: 'LTCUSDT', name: 'Litecoin', type: 'crypto', displayName: 'LTC' },
+            
+            // Forex (pares principales)
+            { symbol: 'EURUSDT', name: 'Euro / USD', type: 'forex', displayName: 'EUR/USD', basePrice: 1.08 },
+            { symbol: 'GBPUSDT', name: 'GBP / USD', type: 'forex', displayName: 'GBP/USD', basePrice: 1.26 },
+            
+            // Commodities (Oro simulado con BTC como proxy temporal)
+            { symbol: 'BTCUSDT', name: 'Gold / USD (XAU/USD)', type: 'commodity', displayName: 'XAUUSD', isProxy: true, multiplier: 0.075 }
         ];
 
-        // Mapeo de timeframes
         const timeframeMap = {
             '1m': '1m',
             '5m': '5m',
@@ -529,20 +626,98 @@
 
         // Initialize
         async function init() {
+            updateCategoryCounts();
             renderAssetButtons();
             setupChart();
             await loadAsset('BTCUSDT');
             document.getElementById('connectionStatus').textContent = 'EN VIVO';
         }
 
+        function updateCategoryCounts() {
+            const counts = {
+                all: allAssets.length,
+                favorites: favorites.length,
+                crypto: allAssets.filter(a => a.type === 'crypto').length,
+                forex: allAssets.filter(a => a.type === 'forex').length,
+                commodity: allAssets.filter(a => a.type === 'commodity').length
+            };
+
+            Object.keys(counts).forEach(key => {
+                const el = document.getElementById(`count-${key}`);
+                if (el) el.textContent = counts[key];
+            });
+        }
+
+        function filterCategory(category) {
+            currentCategory = category;
+            
+            // Actualizar botones de categoría
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.closest('.category-btn').classList.add('active');
+            
+            renderAssetButtons();
+        }
+
+        function toggleFavorite(symbol, event) {
+            event.stopPropagation();
+            
+            const index = favorites.indexOf(symbol);
+            if (index > -1) {
+                favorites.splice(index, 1);
+            } else {
+                favorites.push(symbol);
+            }
+            
+            localStorage.setItem('favorites', JSON.stringify(favorites));
+            updateCategoryCounts();
+            renderAssetButtons();
+        }
+
+        function getFilteredAssets() {
+            let filtered = allAssets;
+            
+            if (currentCategory === 'favorites') {
+                filtered = allAssets.filter(a => favorites.includes(a.symbol));
+            } else if (currentCategory !== 'all') {
+                filtered = allAssets.filter(a => a.type === currentCategory);
+            }
+            
+            // Remover duplicados (XAUUSD proxy)
+            const seen = new Set();
+            return filtered.filter(asset => {
+                const key = asset.displayName || asset.symbol;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+        }
+
         function renderAssetButtons() {
             const container = document.getElementById('assetButtons');
-            container.innerHTML = cryptoAssets.map(asset => `
-                <button class="asset-button ${asset.symbol === currentAsset ? 'active' : ''}" 
-                        onclick="loadAsset('${asset.symbol}')">
-                    ${asset.symbol.replace('USDT', '')}
-                </button>
-            `).join('');
+            const assets = getFilteredAssets();
+            
+            if (assets.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-8">No hay activos en esta categoría</div>';
+                return;
+            }
+            
+            container.innerHTML = assets.map(asset => {
+                const isFavorite = favorites.includes(asset.symbol);
+                const displaySymbol = asset.displayName || asset.symbol.replace('USDT', '');
+                
+                return `
+                    <button class="asset-button ${asset.symbol === currentAsset ? 'active' : ''}" 
+                            onclick="loadAsset('${asset.symbol}')">
+                        <span class="favorite-star ${isFavorite ? 'active' : ''}" 
+                              onclick="toggleFavorite('${asset.symbol}', event)">
+                            ${isFavorite ? '⭐' : '☆'}
+                        </span>
+                        ${displaySymbol}
+                    </button>
+                `;
+            }).join('');
         }
 
         function setupChart() {
@@ -590,30 +765,25 @@
 
         async function loadAsset(symbol) {
             currentAsset = symbol;
-            const asset = cryptoAssets.find(a => a.symbol === symbol);
+            const asset = allAssets.find(a => a.symbol === symbol);
             
             if (!asset) return;
 
+            const displaySymbol = asset.displayName || asset.symbol;
             document.getElementById('currentAsset').innerHTML = `
-                ${asset.symbol}
+                ${displaySymbol}
                 <span class="asset-type-badge badge-${asset.type}">${asset.type.toUpperCase()}</span>
             `;
             document.getElementById('assetName').textContent = asset.name;
             
             renderAssetButtons();
             
-            // Cerrar websocket anterior
             if (websocket) {
                 websocket.close();
             }
             
-            // Cargar datos históricos
             await loadHistoricalData();
-            
-            // Conectar websocket para datos en tiempo real
             connectWebSocket();
-            
-            // Actualizar análisis SMC
             updateSMCAnalysis();
             switchTab(currentTab);
         }
@@ -640,11 +810,8 @@
                 
                 candleSeries.setData(priceData);
                 
-                // Actualizar precio actual
                 const lastCandle = priceData[priceData.length - 1];
                 updatePriceDisplay(lastCandle);
-                
-                // Calcular estadísticas 24h
                 await update24hStats();
                 
             } catch (error) {
@@ -730,26 +897,13 @@
         function updateSMCAnalysis() {
             if (priceData.length === 0) return;
 
-            // Analizar datos reales
             const recentCandles = priceData.slice(-100);
-            const currentPrice = recentCandles[recentCandles.length - 1].close;
-            
-            // Detectar Order Blocks
             const orderBlocks = detectOrderBlocks(recentCandles);
-            
-            // Detectar FVG
             const fvgs = detectFVG(recentCandles);
-            
-            // Detectar zonas de liquidez
             const liquidityZones = detectLiquidityZones(recentCandles);
-            
-            // Detectar cambios de estructura
             const structureBreaks = detectStructureBreaks(recentCandles);
-            
-            // Determinar sesgo
             const bias = calculateMarketBias(recentCandles);
             
-            // Actualizar UI
             renderMarketBias(bias);
             renderOrderBlocks(orderBlocks);
             renderFVG(fvgs);
@@ -765,7 +919,6 @@
                 const prev = candles[i - 1];
                 const next = candles[i + 1];
                 
-                // Bullish Order Block
                 if (current.close > current.open && 
                     next.close > next.open &&
                     next.close > current.high) {
@@ -777,7 +930,6 @@
                     });
                 }
                 
-                // Bearish Order Block
                 if (current.close < current.open && 
                     next.close < next.open &&
                     next.close < current.low) {
@@ -801,7 +953,6 @@
                 const current = candles[i - 1];
                 const next = candles[i];
                 
-                // Bullish FVG
                 if (next.low > prev.high) {
                     gaps.push({
                         type: 'bullish',
@@ -811,7 +962,6 @@
                     });
                 }
                 
-                // Bearish FVG
                 if (next.high < prev.low) {
                     gaps.push({
                         type: 'bearish',
@@ -830,7 +980,6 @@
             const highs = candles.map(c => c.high);
             const lows = candles.map(c => c.low);
             
-            // Equal Highs
             for (let i = 10; i < candles.length - 10; i++) {
                 const localHighs = highs.slice(i - 10, i + 10);
                 const max = Math.max(...localHighs);
@@ -844,7 +993,6 @@
                 }
             }
             
-            // Equal Lows
             for (let i = 10; i < candles.length - 10; i++) {
                 const localLows = lows.slice(i - 10, i + 10);
                 const min = Math.min(...localLows);
@@ -1055,11 +1203,11 @@
                     <div class="space-y-4">
                         <div class="p-4 bg-blue-900 bg-opacity-20 border border-blue-500 border-opacity-30 rounded-lg">
                             <h4 class="font-bold mb-2 text-blue-300">📊 Análisis de Estructura</h4>
-                            <p class="text-sm text-gray-300">Basado en datos reales de Binance. Los Order Blocks, FVG y zonas de liquidez se actualizan en tiempo real con cada nueva vela.</p>
+                            <p class="text-sm text-gray-300">Basado en datos reales de Binance. Los Order Blocks, FVG y zonas de liquidez se actualizan en tiempo real.</p>
                         </div>
                         <div class="p-4 bg-green-900 bg-opacity-20 border border-green-500 border-opacity-30 rounded-lg">
                             <h4 class="font-bold mb-2 text-green-300">⚡ Algoritmos SMC</h4>
-                            <p class="text-sm text-gray-300">Utilizamos algoritmos avanzados para detectar patrones institucionales en datos históricos y en tiempo real.</p>
+                            <p class="text-sm text-gray-300">Detectamos patrones institucionales automáticamente con cada nueva vela.</p>
                         </div>
                     </div>
                 `;
@@ -1074,11 +1222,11 @@
                             <div class="signal-badge ${signal === 'buy' ? 'buy-signal' : 'sell-signal'} inline-block mb-4 text-xl">
                                 ${signal === 'buy' ? '↗ SEÑAL DE COMPRA' : '↘ SEÑAL DE VENTA'}
                             </div>
-                            <div class="text-sm text-gray-400 mb-2">Basado en análisis real</div>
+                            <div class="text-sm text-gray-400 mb-2">Basado en análisis real del mercado</div>
                         </div>
                         <div class="p-4 bg-purple-900 bg-opacity-20 border border-purple-500 border-opacity-30 rounded-lg">
                             <h4 class="font-bold mb-2">📝 Análisis en Vivo</h4>
-                            <p class="text-sm text-gray-300">Las señales se generan automáticamente basadas en los datos reales del mercado y los conceptos SMC detectados.</p>
+                            <p class="text-sm text-gray-300">Las señales se generan automáticamente con los conceptos SMC detectados.</p>
                         </div>
                     </div>
                 `;
@@ -1088,9 +1236,9 @@
                         <div class="p-4 bg-indigo-900 bg-opacity-20 border border-indigo-500 border-opacity-30 rounded-lg">
                             <h4 class="font-bold mb-3">🎯 Trading con Datos Reales</h4>
                             <div class="space-y-3 text-sm text-gray-300">
-                                <div><strong class="text-indigo-300">Paso 1:</strong> Observa los Order Blocks detectados automáticamente</div>
-                                <div><strong class="text-indigo-300">Paso 2:</strong> Espera confirmación en el gráfico en tiempo real</div>
-                                <div><strong class="text-indigo-300">Paso 3:</strong> Verifica las zonas de liquidez antes de entrar</div>
+                                <div><strong class="text-indigo-300">Paso 1:</strong> Observa los Order Blocks detectados</div>
+                                <div><strong class="text-indigo-300">Paso 2:</strong> Espera confirmación en el gráfico</div>
+                                <div><strong class="text-indigo-300">Paso 3:</strong> Verifica zonas de liquidez antes de entrar</div>
                             </div>
                         </div>
                     </div>
@@ -1105,35 +1253,50 @@
             });
             event.target.classList.add('active');
             
-            // Recargar datos con nuevo timeframe
             loadAsset(currentAsset);
         }
 
         // Search functionality
         document.getElementById('assetSearch').addEventListener('input', (e) => {
             const search = e.target.value.toUpperCase();
-            const filtered = cryptoAssets.filter(a => 
-                a.symbol.includes(search) || 
+            
+            if (search.length === 0) {
+                renderAssetButtons();
+                return;
+            }
+            
+            const container = document.getElementById('assetButtons');
+            const filtered = getFilteredAssets().filter(a => 
+                (a.displayName || a.symbol).toUpperCase().includes(search) || 
                 a.name.toUpperCase().includes(search)
             );
             
-            if (filtered.length > 0 && e.target.value.length >= 2) {
-                const container = document.getElementById('assetButtons');
-                container.innerHTML = filtered.map(asset => `
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-8">No se encontraron activos</div>';
+                return;
+            }
+            
+            container.innerHTML = filtered.map(asset => {
+                const isFavorite = favorites.includes(asset.symbol);
+                const displaySymbol = asset.displayName || asset.symbol.replace('USDT', '');
+                
+                return `
                     <button class="asset-button ${asset.symbol === currentAsset ? 'active' : ''}" 
                             onclick="loadAsset('${asset.symbol}')">
-                        ${asset.symbol.replace('USDT', '')}
+                        <span class="favorite-star ${isFavorite ? 'active' : ''}" 
+                              onclick="toggleFavorite('${asset.symbol}', event)">
+                            ${isFavorite ? '⭐' : '☆'}
+                        </span>
+                        ${displaySymbol}
                     </button>
-                `).join('');
-            } else if (e.target.value.length === 0) {
-                renderAssetButtons();
-            }
+                `;
+            }).join('');
         });
 
         // Initialize app
         init();
 
-        // Registrar Service Worker para PWA
+        // Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/service-worker.js')
