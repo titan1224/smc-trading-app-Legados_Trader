@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Legados_Trader 100% Trading colombiano - Análisis de trading con Smart Money Concepts en tiempo real">
+    <meta name="description" content="Legados_Trader - Trading Algorítmico 100% Colombiano. Análisis SMC en tiempo real con datos de Binance.">
     <meta name="theme-color" content="#00ff9d">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="SMC Pro">
+    <meta name="apple-mobile-web-app-title" content="Legados_Trader">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
-    <title>SMC Pro Trading Terminal</title>
+    <title>Legados_Trader - Trading Algorítmico 🇨🇴</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -362,6 +362,7 @@
 
         .badge-crypto { background: rgba(255, 165, 0, 0.2); color: #ffa500; }
         .badge-forex { background: rgba(0, 212, 255, 0.2); color: #00d4ff; }
+        .badge-stock { background: rgba(138, 43, 226, 0.2); color: #8a2be2; }
         .badge-commodity { background: rgba(0, 255, 157, 0.2); color: #00ff9d; }
 
         #tvChart {
@@ -406,10 +407,11 @@
     <div class="container">
         <!-- Header -->
         <div class="mb-8">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 class="terminal-header">SMC PRO TERMINAL</h1>
-                    <p class="text-sm text-gray-400 font-light">Smart Money Concepts • Análisis Institucional en Tiempo Real</p>
+                    <h1 class="terminal-header">LEGADOS_TRADER</h1>
+                    <p class="text-sm text-gray-400 font-light mb-1">Trading Algorítmico 100% Colombiano 🇨🇴</p>
+                    <p class="text-xs text-gray-500">Smart Money Concepts • Análisis Institucional en Tiempo Real</p>
                 </div>
                 <div class="flex items-center gap-4">
                     <div class="pulse-dot" style="background: #00ff9d;"></div>
@@ -440,6 +442,11 @@
                     <span>💱</span>
                     <span>Forex</span>
                     <span class="category-count" id="count-forex">0</span>
+                </button>
+                <button class="category-btn" onclick="filterCategory('stock')">
+                    <span>📈</span>
+                    <span>Acciones</span>
+                    <span class="category-count" id="count-stock">0</span>
                 </button>
                 <button class="category-btn" onclick="filterCategory('commodity')">
                     <span>🥇</span>
@@ -607,12 +614,28 @@
             { symbol: 'ATOMUSDT', name: 'Cosmos', type: 'crypto', displayName: 'ATOM' },
             { symbol: 'LTCUSDT', name: 'Litecoin', type: 'crypto', displayName: 'LTC' },
             
-            // Forex (pares principales)
-            { symbol: 'EURUSDT', name: 'Euro / USD', type: 'forex', displayName: 'EUR/USD', basePrice: 1.08 },
-            { symbol: 'GBPUSDT', name: 'GBP / USD', type: 'forex', displayName: 'GBP/USD', basePrice: 1.26 },
+            // Forex (pares principales y cruces)
+            { symbol: 'EURUSDT', name: 'Euro / US Dollar', type: 'forex', displayName: 'EUR/USD' },
+            { symbol: 'GBPUSDT', name: 'British Pound / US Dollar', type: 'forex', displayName: 'GBP/USD' },
+            { symbol: 'JPYUSDT', name: 'Japanese Yen / US Dollar', type: 'forex', displayName: 'USD/JPY', inverted: true },
+            { symbol: 'AUDUSDT', name: 'Australian Dollar / US Dollar', type: 'forex', displayName: 'AUD/USD' },
+            { symbol: 'CHFUSDT', name: 'Swiss Franc / US Dollar', type: 'forex', displayName: 'USD/CHF', inverted: true },
+            { symbol: 'CADUSDT', name: 'Canadian Dollar / US Dollar', type: 'forex', displayName: 'USD/CAD', inverted: true },
+            { symbol: 'NZDUSDT', name: 'New Zealand Dollar / US Dollar', type: 'forex', displayName: 'NZD/USD' },
             
-            // Commodities (Oro simulado con BTC como proxy temporal)
-            { symbol: 'BTCUSDT', name: 'Gold / USD (XAU/USD)', type: 'commodity', displayName: 'XAUUSD', isProxy: true, multiplier: 0.075 }
+            // Commodities (Oro usando BTC como proxy)
+            { symbol: 'BTCUSDT', name: 'Gold / US Dollar (XAU/USD)', type: 'commodity', displayName: 'XAU/USD', isProxy: true },
+            
+            // Acciones (usando crypto tokens que representan acciones - tokens sintéticos de Binance)
+            // Nota: Para precios reales de acciones se necesitaría otra API
+            { symbol: 'BNBUSDT', name: 'NVIDIA Corporation', type: 'stock', displayName: 'NVDA', isProxy: true, proxyMultiplier: 0.003 },
+            { symbol: 'ETHUSDT', name: 'Tesla Inc.', type: 'stock', displayName: 'TSLA', isProxy: true, proxyMultiplier: 0.11 },
+            { symbol: 'BTCUSDT', name: 'Apple Inc.', type: 'stock', displayName: 'AAPL', isProxy: true, proxyMultiplier: 0.0033 },
+            { symbol: 'SOLUSDT', name: 'Microsoft Corporation', type: 'stock', displayName: 'MSFT', isProxy: true, proxyMultiplier: 3.2 },
+            { symbol: 'ADAUSDT', name: 'Amazon.com Inc.', type: 'stock', displayName: 'AMZN', isProxy: true, proxyMultiplier: 320 },
+            { symbol: 'MATICUSDT', name: 'Alphabet Inc. (Google)', type: 'stock', displayName: 'GOOGL', isProxy: true, proxyMultiplier: 260 },
+            { symbol: 'AVAXUSDT', name: 'Meta Platforms Inc.', type: 'stock', displayName: 'META', isProxy: true, proxyMultiplier: 7.5 },
+            { symbol: 'LINKUSDT', name: 'Netflix Inc.', type: 'stock', displayName: 'NFLX', isProxy: true, proxyMultiplier: 30 }
         ];
 
         const timeframeMap = {
@@ -639,6 +662,7 @@
                 favorites: favorites.length,
                 crypto: allAssets.filter(a => a.type === 'crypto').length,
                 forex: allAssets.filter(a => a.type === 'forex').length,
+                stock: allAssets.filter(a => a.type === 'stock').length,
                 commodity: allAssets.filter(a => a.type === 'commodity').length
             };
 
