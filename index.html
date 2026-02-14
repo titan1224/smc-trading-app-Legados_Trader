@@ -475,12 +475,12 @@
             </div>
 
             <!-- Search -->
-            <div class="mb-4">
-                <input type="text" id="assetSearch" class="search-box" placeholder="🔍 Buscar activo por nombre o símbolo...">
+            <div>
+                <input type="text" id="assetSearch" class="search-box" placeholder="🔍 Buscar activo... (ej: BTC, ETH, PEPE, SOL)" onfocus="showSearchResults()">
+                
+                <!-- Search Results (hidden by default) -->
+                <div id="searchResults" class="hidden mt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
             </div>
-
-            <!-- Asset Buttons -->
-            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3" id="assetButtons"></div>
         </div>
 
         <!-- Main Layout -->
@@ -738,7 +738,7 @@
         async function init() {
             loadSavedLogo();
             updateCategoryCounts();
-            renderAssetButtons();
+            // No llamar renderAssetButtons - solo mostrar al buscar o filtrar
             setupChart();
             await loadAsset('BTCUSDT');
             document.getElementById('connectionStatus').textContent = 'EN VIVO';
@@ -762,6 +762,10 @@
             currentCategory = category;
             document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
             event.target.closest('.category-btn').classList.add('active');
+            
+            // Show results when filtering
+            const results = document.getElementById('searchResults');
+            results.classList.remove('hidden');
             renderAssetButtons();
         }
 
@@ -778,6 +782,15 @@
             renderAssetButtons();
         }
 
+        function showSearchResults() {
+            const search = document.getElementById('assetSearch').value;
+            const results = document.getElementById('searchResults');
+            results.classList.remove('hidden');
+            if (search.length === 0) {
+                renderAssetButtons();
+            }
+        }
+
         function getFilteredAssets() {
             if (currentCategory === 'favorites') {
                 return allAssets.filter(a => favorites.includes(a.symbol));
@@ -788,7 +801,7 @@
         }
 
         function renderAssetButtons() {
-            const container = document.getElementById('assetButtons');
+            const container = document.getElementById('searchResults');
             const assets = getFilteredAssets();
             
             if (assets.length === 0) {
@@ -1288,22 +1301,24 @@
         // Search
         document.getElementById('assetSearch').addEventListener('input', (e) => {
             const search = e.target.value.toUpperCase();
+            const results = document.getElementById('searchResults');
+            
             if (search.length === 0) {
-                renderAssetButtons();
+                results.classList.add('hidden');
                 return;
             }
             
-            const container = document.getElementById('assetButtons');
+            results.classList.remove('hidden');
             const filtered = getFilteredAssets().filter(a => 
                 a.displayName.toUpperCase().includes(search) || a.name.toUpperCase().includes(search)
             );
             
             if (filtered.length === 0) {
-                container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-8">No se encontraron activos</div>';
+                results.innerHTML = '<div class="col-span-full text-center text-gray-400 py-8">No se encontraron activos</div>';
                 return;
             }
             
-            container.innerHTML = filtered.map(asset => {
+            results.innerHTML = filtered.map(asset => {
                 const isFavorite = favorites.includes(asset.symbol);
                 return `
                     <button class="asset-button ${asset.symbol === currentAsset ? 'active' : ''}" 
