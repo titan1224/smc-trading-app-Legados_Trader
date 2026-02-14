@@ -362,31 +362,10 @@
 
         .badge-crypto { background: rgba(255, 165, 0, 0.2); color: #ffa500; }
         .badge-forex { background: rgba(0, 212, 255, 0.2); color: #00d4ff; }
-        .badge-stock { background: rgba(138, 43, 226, 0.2); color: #8a2be2; }
-        .badge-commodity { background: rgba(0, 255, 157, 0.2); color: #00ff9d; }
 
         #tvChart {
             width: 100%;
             height: 100%;
-        }
-
-        .loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #00ff9d;
-            font-size: 0.9rem;
-        }
-
-        .loading::after {
-            content: '...';
-            animation: dots 1.5s steps(4, end) infinite;
-        }
-
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
         }
 
         .category-count {
@@ -443,16 +422,6 @@
                     <span>Forex</span>
                     <span class="category-count" id="count-forex">0</span>
                 </button>
-                <button class="category-btn" onclick="filterCategory('stock')">
-                    <span>📈</span>
-                    <span>Acciones</span>
-                    <span class="category-count" id="count-stock">0</span>
-                </button>
-                <button class="category-btn" onclick="filterCategory('commodity')">
-                    <span>🥇</span>
-                    <span>Commodities</span>
-                    <span class="category-count" id="count-commodity">0</span>
-                </button>
             </div>
 
             <!-- Search -->
@@ -473,9 +442,10 @@
                     <div class="flex items-center justify-between mb-4">
                         <div>
                             <h2 class="text-3xl font-bold flex items-center" id="currentAsset">
-                                <span class="loading">Cargando</span>
+                                BTC
+                                <span class="asset-type-badge badge-crypto">CRYPTO</span>
                             </h2>
-                            <p class="text-sm text-gray-400" id="assetName">Conectando a APIs...</p>
+                            <p class="text-sm text-gray-400" id="assetName">Bitcoin / USDT</p>
                         </div>
                         <div class="text-right">
                             <div class="price-ticker" id="currentPrice">$0.00</div>
@@ -537,53 +507,36 @@
                         <span class="pulse-dot" style="background: #00ff9d;"></span>
                         Sesgo del Mercado
                     </h3>
-                    <div id="marketBias" class="text-center py-6">
-                        <div class="loading">Analizando</div>
-                    </div>
+                    <div id="marketBias" class="text-center py-6"></div>
                 </div>
 
                 <div class="glass-card">
                     <h3 class="text-lg font-bold mb-4">📦 Order Blocks Activos</h3>
-                    <div id="orderBlocks" class="space-y-3">
-                        <div class="loading">Detectando zonas</div>
-                    </div>
+                    <div id="orderBlocks" class="space-y-3"></div>
                 </div>
 
                 <div class="glass-card">
                     <h3 class="text-lg font-bold mb-4">⚡ Fair Value Gaps</h3>
-                    <div id="fvgZones" class="space-y-3">
-                        <div class="loading">Buscando gaps</div>
-                    </div>
+                    <div id="fvgZones" class="space-y-3"></div>
                 </div>
 
                 <div class="glass-card">
                     <h3 class="text-lg font-bold mb-4">💧 Zonas de Liquidez</h3>
-                    <div id="liquidityZones" class="space-y-3">
-                        <div class="loading">Mapeando liquidez</div>
-                    </div>
+                    <div id="liquidityZones" class="space-y-3"></div>
                 </div>
 
                 <div class="glass-card">
                     <h3 class="text-lg font-bold mb-4">🔄 Cambios de Estructura</h3>
-                    <div id="structureBreaks" class="space-y-3">
-                        <div class="loading">Analizando estructura</div>
-                    </div>
+                    <div id="structureBreaks" class="space-y-3"></div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // ============================================
-        // CONFIGURACIÓN - API KEY CONFIGURADA
-        // ============================================
-        const FINNHUB_API_KEY = 'd68a3o9r01qi2if7bjugd68a3o9r01qi2if7bjv0';
-        
-        // APIs
+        // APIs de Binance (100% gratis, sin API key)
         const BINANCE_WS = 'wss://stream.binance.com:9443/ws/';
         const BINANCE_API = 'https://api.binance.com/api/v3';
-        const FINNHUB_API = 'https://finnhub.io/api/v1';
-        const FINNHUB_WS = `wss://ws.finnhub.io?token=${FINNHUB_API_KEY}`;
         
         let currentAsset = 'BTCUSDT';
         let currentTimeframe = '1h';
@@ -592,41 +545,41 @@
         let chart = null;
         let candleSeries = null;
         let websocket = null;
-        let stockWebsocket = null;
         let priceData = [];
         let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
 
-        // Base de datos de activos
+        // Base de datos de activos - SOLO Crypto y Forex
         const allAssets = [
-            // Crypto (Binance)
-            { symbol: 'BTCUSDT', name: 'Bitcoin', type: 'crypto', displayName: 'BTC', source: 'binance' },
-            { symbol: 'ETHUSDT', name: 'Ethereum', type: 'crypto', displayName: 'ETH', source: 'binance' },
-            { symbol: 'BNBUSDT', name: 'Binance Coin', type: 'crypto', displayName: 'BNB', source: 'binance' },
-            { symbol: 'SOLUSDT', name: 'Solana', type: 'crypto', displayName: 'SOL', source: 'binance' },
-            { symbol: 'XRPUSDT', name: 'Ripple', type: 'crypto', displayName: 'XRP', source: 'binance' },
-            { symbol: 'ADAUSDT', name: 'Cardano', type: 'crypto', displayName: 'ADA', source: 'binance' },
-            { symbol: 'DOGEUSDT', name: 'Dogecoin', type: 'crypto', displayName: 'DOGE', source: 'binance' },
-            { symbol: 'MATICUSDT', name: 'Polygon', type: 'crypto', displayName: 'MATIC', source: 'binance' },
-            { symbol: 'DOTUSDT', name: 'Polkadot', type: 'crypto', displayName: 'DOT', source: 'binance' },
-            { symbol: 'AVAXUSDT', name: 'Avalanche', type: 'crypto', displayName: 'AVAX', source: 'binance' },
-            { symbol: 'LINKUSDT', name: 'Chainlink', type: 'crypto', displayName: 'LINK', source: 'binance' },
-            { symbol: 'UNIUSDT', name: 'Uniswap', type: 'crypto', displayName: 'UNI', source: 'binance' },
+            // Crypto (Top 20)
+            { symbol: 'BTCUSDT', name: 'Bitcoin', type: 'crypto', displayName: 'BTC' },
+            { symbol: 'ETHUSDT', name: 'Ethereum', type: 'crypto', displayName: 'ETH' },
+            { symbol: 'BNBUSDT', name: 'Binance Coin', type: 'crypto', displayName: 'BNB' },
+            { symbol: 'SOLUSDT', name: 'Solana', type: 'crypto', displayName: 'SOL' },
+            { symbol: 'XRPUSDT', name: 'Ripple', type: 'crypto', displayName: 'XRP' },
+            { symbol: 'ADAUSDT', name: 'Cardano', type: 'crypto', displayName: 'ADA' },
+            { symbol: 'DOGEUSDT', name: 'Dogecoin', type: 'crypto', displayName: 'DOGE' },
+            { symbol: 'MATICUSDT', name: 'Polygon', type: 'crypto', displayName: 'MATIC' },
+            { symbol: 'DOTUSDT', name: 'Polkadot', type: 'crypto', displayName: 'DOT' },
+            { symbol: 'AVAXUSDT', name: 'Avalanche', type: 'crypto', displayName: 'AVAX' },
+            { symbol: 'LINKUSDT', name: 'Chainlink', type: 'crypto', displayName: 'LINK' },
+            { symbol: 'UNIUSDT', name: 'Uniswap', type: 'crypto', displayName: 'UNI' },
+            { symbol: 'ATOMUSDT', name: 'Cosmos', type: 'crypto', displayName: 'ATOM' },
+            { symbol: 'LTCUSDT', name: 'Litecoin', type: 'crypto', displayName: 'LTC' },
+            { symbol: 'ETCUSDT', name: 'Ethereum Classic', type: 'crypto', displayName: 'ETC' },
+            { symbol: 'TRXUSDT', name: 'TRON', type: 'crypto', displayName: 'TRX' },
+            { symbol: 'XLMUSDT', name: 'Stellar', type: 'crypto', displayName: 'XLM' },
+            { symbol: 'NEARUSDT', name: 'NEAR Protocol', type: 'crypto', displayName: 'NEAR' },
+            { symbol: 'ALGOUSDT', name: 'Algorand', type: 'crypto', displayName: 'ALGO' },
+            { symbol: 'VETUSDT', name: 'VeChain', type: 'crypto', displayName: 'VET' },
             
-            // Forex (Binance)
-            { symbol: 'EURUSDT', name: 'Euro / US Dollar', type: 'forex', displayName: 'EUR/USD', source: 'binance' },
-            { symbol: 'GBPUSDT', name: 'British Pound / US Dollar', type: 'forex', displayName: 'GBP/USD', source: 'binance' },
-            { symbol: 'AUDUSDT', name: 'Australian Dollar / US Dollar', type: 'forex', displayName: 'AUD/USD', source: 'binance' },
-            { symbol: 'NZDUSDT', name: 'New Zealand Dollar / US Dollar', type: 'forex', displayName: 'NZD/USD', source: 'binance' },
-            
-            // Acciones (Finnhub)
-            { symbol: 'NVDA', name: 'NVIDIA Corporation', type: 'stock', displayName: 'NVDA', source: 'finnhub' },
-            { symbol: 'TSLA', name: 'Tesla, Inc.', type: 'stock', displayName: 'TSLA', source: 'finnhub' },
-            { symbol: 'MSFT', name: 'Microsoft Corporation', type: 'stock', displayName: 'MSFT', source: 'finnhub' },
-            { symbol: 'AAPL', name: 'Apple Inc.', type: 'stock', displayName: 'AAPL', source: 'finnhub' },
-            { symbol: 'AMZN', name: 'Amazon.com, Inc.', type: 'stock', displayName: 'AMZN', source: 'finnhub' },
-            { symbol: 'META', name: 'Meta Platforms Inc Class A', type: 'stock', displayName: 'META', source: 'finnhub' },
-            { symbol: 'NFLX', name: 'Netflix, Inc.', type: 'stock', displayName: 'NFLX', source: 'finnhub' },
-            { symbol: 'AMD', name: 'Advanced Micro Devices, Inc.', type: 'stock', displayName: 'AMD', source: 'finnhub' }
+            // Forex (Pares principales)
+            { symbol: 'EURUSDT', name: 'Euro / US Dollar', type: 'forex', displayName: 'EUR/USD' },
+            { symbol: 'GBPUSDT', name: 'British Pound / US Dollar', type: 'forex', displayName: 'GBP/USD' },
+            { symbol: 'AUDUSDT', name: 'Australian Dollar / US Dollar', type: 'forex', displayName: 'AUD/USD' },
+            { symbol: 'NZDUSDT', name: 'New Zealand Dollar / US Dollar', type: 'forex', displayName: 'NZD/USD' },
+            { symbol: 'JPYUSDT', name: 'Japanese Yen / US Dollar', type: 'forex', displayName: 'JPY/USD' },
+            { symbol: 'CHFUSDT', name: 'Swiss Franc / US Dollar', type: 'forex', displayName: 'CHF/USD' },
+            { symbol: 'CADUSDT', name: 'Canadian Dollar / US Dollar', type: 'forex', displayName: 'CAD/USD' }
         ];
 
         const timeframeMap = {
@@ -638,35 +591,20 @@
             '1d': '1d'
         };
 
-        const finnhubResolutionMap = {
-            '1m': '1',
-            '5m': '5',
-            '15m': '15',
-            '1h': '60',
-            '4h': '240',
-            '1d': 'D'
-        };
-
         async function init() {
             updateCategoryCounts();
             renderAssetButtons();
             setupChart();
-            await loadAsset('BTCUSDT'); // Empezar con Bitcoin (más rápido)
+            await loadAsset('BTCUSDT');
             document.getElementById('connectionStatus').textContent = 'EN VIVO';
         }
 
         function updateCategoryCounts() {
-            const uniqueAssets = allAssets.filter((asset, index, self) => 
-                index === self.findIndex((a) => a.displayName === asset.displayName)
-            );
-            
             const counts = {
-                all: uniqueAssets.length,
+                all: allAssets.length,
                 favorites: favorites.length,
-                crypto: uniqueAssets.filter(a => a.type === 'crypto').length,
-                forex: uniqueAssets.filter(a => a.type === 'forex').length,
-                stock: uniqueAssets.filter(a => a.type === 'stock').length,
-                commodity: uniqueAssets.filter(a => a.type === 'commodity').length
+                crypto: allAssets.filter(a => a.type === 'crypto').length,
+                forex: allAssets.filter(a => a.type === 'forex').length
             };
 
             Object.keys(counts).forEach(key => {
@@ -696,21 +634,12 @@
         }
 
         function getFilteredAssets() {
-            let filtered = allAssets;
-            
             if (currentCategory === 'favorites') {
-                filtered = allAssets.filter(a => favorites.includes(a.symbol));
+                return allAssets.filter(a => favorites.includes(a.symbol));
             } else if (currentCategory !== 'all') {
-                filtered = allAssets.filter(a => a.type === currentCategory);
+                return allAssets.filter(a => a.type === currentCategory);
             }
-            
-            const seen = new Set();
-            return filtered.filter(asset => {
-                const key = asset.displayName;
-                if (seen.has(key)) return false;
-                seen.add(key);
-                return true;
-            });
+            return allAssets;
         }
 
         function renderAssetButtons() {
@@ -724,13 +653,8 @@
             
             container.innerHTML = assets.map(asset => {
                 const isFavorite = favorites.includes(asset.symbol);
-                // Use unique identifier for stocks vs crypto/forex
-                const buttonSymbol = asset.type === 'stock' ? asset.symbol : asset.symbol;
-                const isActive = (asset.type === 'stock' && asset.symbol === currentAsset) || 
-                                (asset.type !== 'stock' && asset.symbol === currentAsset);
-                
                 return `
-                    <button class="asset-button ${isActive ? 'active' : ''}" 
+                    <button class="asset-button ${asset.symbol === currentAsset ? 'active' : ''}" 
                             onclick="loadAsset('${asset.symbol}')">
                         <span class="favorite-star ${isFavorite ? 'active' : ''}" 
                               onclick="toggleFavorite('${asset.symbol}', event)">
@@ -785,27 +709,9 @@
         }
 
         async function loadAsset(symbol) {
-            console.log('Loading asset:', symbol);
-            
-            // CRITICAL: Find asset by matching BOTH symbol AND checking it's the right type
-            // For stocks, we need to find the one with source='finnhub'
-            // For crypto/forex, we need to find the one with source='binance'
-            let asset = null;
-            
-            // First, try to find a stock with this exact symbol
-            asset = allAssets.find(a => a.symbol === symbol && a.type === 'stock' && a.source === 'finnhub');
-            
-            // If not found as stock, try crypto/forex from binance
-            if (!asset) {
-                asset = allAssets.find(a => a.symbol === symbol && a.source === 'binance');
-            }
-            
-            if (!asset) {
-                console.error('Asset not found:', symbol);
-                return;
-            }
+            const asset = allAssets.find(a => a.symbol === symbol);
+            if (!asset) return;
 
-            console.log('Found asset:', asset.displayName, asset.type, asset.source);
             currentAsset = symbol;
             
             document.getElementById('currentAsset').innerHTML = `
@@ -816,143 +722,25 @@
             
             renderAssetButtons();
             
-            // Cerrar websockets anteriores
             if (websocket) {
                 websocket.close();
                 websocket = null;
             }
-            if (stockWebsocket) {
-                stockWebsocket.close();
-                stockWebsocket = null;
-            }
             
-            // Clear previous data
             priceData = [];
-            candleSeries.setData([]);
-            
-            // Show loading
-            document.getElementById('currentPrice').textContent = '$...';
-            document.getElementById('priceChange').textContent = '...';
-            
-            // Cargar datos según la fuente
-            console.log('Loading data from source:', asset.source);
-            if (asset.source === 'finnhub') {
-                console.log('Fetching stock data for:', symbol);
-                await loadStockData(symbol);
-            } else if (asset.source === 'binance') {
-                console.log('Fetching crypto data for:', symbol);
-                await loadCryptoData(symbol);
-            }
-            
+            await loadHistoricalData();
+            connectWebSocket();
             updateSMCAnalysis();
             switchTab(currentTab);
         }
 
-        async function loadStockData(symbol) {
-            try {
-                console.log('Fetching stock data from Finnhub for:', symbol);
-                const resolution = finnhubResolutionMap[currentTimeframe];
-                const to = Math.floor(Date.now() / 1000);
-                const from = to - (30 * 24 * 60 * 60); // 30 días
-                
-                const url = `${FINNHUB_API}/stock/candle?symbol=${symbol}&resolution=${resolution}&from=${from}&to=${to}&token=${FINNHUB_API_KEY}`;
-                console.log('Finnhub URL:', url.replace(FINNHUB_API_KEY, 'API_KEY_HIDDEN'));
-                
-                const response = await fetch(url);
-                console.log('Response status:', response.status);
-                
-                const data = await response.json();
-                console.log('Finnhub response:', data);
-                
-                if (data.s === 'ok' && data.t && data.t.length > 0) {
-                    priceData = data.t.map((time, i) => ({
-                        time: time,
-                        open: data.o[i],
-                        high: data.h[i],
-                        low: data.l[i],
-                        close: data.c[i],
-                        volume: data.v[i]
-                    }));
-                    
-                    console.log('Loaded', priceData.length, 'candles');
-                    candleSeries.setData(priceData);
-                    
-                    const lastCandle = priceData[priceData.length - 1];
-                    updatePriceDisplay(lastCandle);
-                    
-                    // Conectar WebSocket para actualizaciones en tiempo real
-                    connectStockWebSocket(symbol);
-                    
-                    // Obtener quote actual
-                    await getStockQuote(symbol);
-                } else {
-                    console.error('Finnhub returned error or no data:', data);
-                    alert('Error: No se pudieron obtener datos de ' + symbol + '. Verifica tu API key de Finnhub.');
-                }
-            } catch (error) {
-                console.error('Error cargando datos de acción:', error);
-                alert('Error al cargar datos: ' + error.message);
-            }
-        }
-
-        async function getStockQuote(symbol) {
-            try {
-                const response = await fetch(
-                    `${FINNHUB_API}/quote?symbol=${symbol}&token=${FINNHUB_API_KEY}`
-                );
-                
-                const quote = await response.json();
-                
-                document.getElementById('high24h').textContent = `$${quote.h.toFixed(2)}`;
-                document.getElementById('low24h').textContent = `$${quote.l.toFixed(2)}`;
-                document.getElementById('volume24h').textContent = `${(quote.v / 1000000).toFixed(1)}M`;
-                
-                const change = quote.dp;
-                document.getElementById('priceChange').textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
-                
-            } catch (error) {
-                console.error('Error obteniendo quote:', error);
-            }
-        }
-
-        function connectStockWebSocket(symbol) {
-            stockWebsocket = new WebSocket(FINNHUB_WS);
-            
-            stockWebsocket.onopen = () => {
-                stockWebsocket.send(JSON.stringify({
-                    type: 'subscribe',
-                    symbol: symbol
-                }));
-            };
-            
-            stockWebsocket.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.type === 'trade' && data.data && data.data.length > 0) {
-                    const trade = data.data[0];
-                    const lastCandle = priceData[priceData.length - 1];
-                    
-                    const newCandle = {
-                        time: Math.floor(trade.t / 1000),
-                        open: lastCandle.close,
-                        high: Math.max(lastCandle.close, trade.p),
-                        low: Math.min(lastCandle.close, trade.p),
-                        close: trade.p,
-                        volume: trade.v
-                    };
-                    
-                    candleSeries.update(newCandle);
-                    updatePriceDisplay(newCandle);
-                }
-            };
-        }
-
-        async function loadCryptoData(symbol) {
+        async function loadHistoricalData() {
             try {
                 const interval = timeframeMap[currentTimeframe];
                 const limit = 500;
                 
                 const response = await fetch(
-                    `${BINANCE_API}/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
+                    `${BINANCE_API}/klines?symbol=${currentAsset}&interval=${interval}&limit=${limit}`
                 );
                 
                 const data = await response.json();
@@ -970,17 +758,15 @@
                 
                 const lastCandle = priceData[priceData.length - 1];
                 updatePriceDisplay(lastCandle);
-                await update24hStats(symbol);
-                
-                connectCryptoWebSocket(symbol);
+                await update24hStats();
                 
             } catch (error) {
-                console.error('Error cargando datos crypto:', error);
+                console.error('Error cargando datos:', error);
             }
         }
 
-        function connectCryptoWebSocket(symbol) {
-            const stream = symbol.toLowerCase() + '@kline_' + timeframeMap[currentTimeframe];
+        function connectWebSocket() {
+            const stream = currentAsset.toLowerCase() + '@kline_' + timeframeMap[currentTimeframe];
             websocket = new WebSocket(BINANCE_WS + stream);
             
             websocket.onmessage = (event) => {
@@ -999,23 +785,11 @@
                 candleSeries.update(newCandle);
                 updatePriceDisplay(newCandle);
             };
-        }
-
-        async function update24hStats(symbol) {
-            try {
-                const response = await fetch(`${BINANCE_API}/ticker/24hr?symbol=${symbol}`);
-                const stats = await response.json();
-                
-                document.getElementById('high24h').textContent = `$${parseFloat(stats.highPrice).toFixed(2)}`;
-                document.getElementById('low24h').textContent = `$${parseFloat(stats.lowPrice).toFixed(2)}`;
-                
-                const volume = parseFloat(stats.volume);
-                const volumeStr = volume > 1000000 ? `${(volume / 1000000).toFixed(1)}M` : `${(volume / 1000).toFixed(0)}K`;
-                document.getElementById('volume24h').textContent = volumeStr;
-                
-            } catch (error) {
-                console.error('Error obteniendo stats 24h:', error);
-            }
+            
+            websocket.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                document.getElementById('connectionStatus').textContent = 'ERROR CONEXIÓN';
+            };
         }
 
         function updatePriceDisplay(candle) {
@@ -1023,8 +797,13 @@
             const open = priceData[Math.max(0, priceData.length - 50)]?.close || candle.open;
             const change = ((price - open) / open * 100);
             
+            const asset = allAssets.find(a => a.symbol === currentAsset);
+            const decimals = asset?.type === 'forex' ? 5 : 2;
+            
             document.getElementById('currentPrice').textContent = 
-                `$${price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                asset?.type === 'forex' ? 
+                price.toFixed(decimals) :
+                `$${price.toLocaleString('en-US', {minimumFractionDigits: decimals, maximumFractionDigits: decimals})}`;
             
             const changeEl = document.getElementById('priceChange');
             changeEl.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
@@ -1038,24 +817,37 @@
             }`;
         }
 
-        function updateSMCAnalysis() {
-            if (priceData.length === 0) {
-                // Show loading state
-                document.getElementById('marketBias').innerHTML = '<div class="loading">Analizando</div>';
-                document.getElementById('orderBlocks').innerHTML = '<div class="loading">Detectando zonas</div>';
-                document.getElementById('fvgZones').innerHTML = '<div class="loading">Buscando gaps</div>';
-                document.getElementById('liquidityZones').innerHTML = '<div class="loading">Mapeando liquidez</div>';
-                document.getElementById('structureBreaks').innerHTML = '<div class="loading">Analizando estructura</div>';
-                return;
+        async function update24hStats() {
+            try {
+                const response = await fetch(`${BINANCE_API}/ticker/24hr?symbol=${currentAsset}`);
+                const stats = await response.json();
+                
+                const asset = allAssets.find(a => a.symbol === currentAsset);
+                const decimals = asset?.type === 'forex' ? 5 : 2;
+                
+                document.getElementById('high24h').textContent = 
+                    asset?.type === 'forex' ?
+                    parseFloat(stats.highPrice).toFixed(decimals) :
+                    `$${parseFloat(stats.highPrice).toFixed(decimals)}`;
+                
+                document.getElementById('low24h').textContent = 
+                    asset?.type === 'forex' ?
+                    parseFloat(stats.lowPrice).toFixed(decimals) :
+                    `$${parseFloat(stats.lowPrice).toFixed(decimals)}`;
+                
+                const volume = parseFloat(stats.volume);
+                const volumeStr = volume > 1000000 ? `${(volume / 1000000).toFixed(1)}M` : `${(volume / 1000).toFixed(0)}K`;
+                document.getElementById('volume24h').textContent = volumeStr;
+                
+            } catch (error) {
+                console.error('Error obteniendo estadísticas 24h:', error);
             }
+        }
 
-            // Wait a bit for data to populate, then analyze
+        function updateSMCAnalysis() {
+            if (priceData.length < 10) return;
+
             setTimeout(() => {
-                if (priceData.length < 10) {
-                    console.log('Esperando más datos...');
-                    return;
-                }
-
                 const recentCandles = priceData.slice(-100);
                 const orderBlocks = detectOrderBlocks(recentCandles);
                 const fvgs = detectFVG(recentCandles);
@@ -1071,7 +863,7 @@
             }, 500);
         }
 
-        // Funciones SMC (igual que antes)
+        // SMC Detection Functions
         function detectOrderBlocks(candles) {
             const blocks = [];
             for (let i = 5; i < candles.length - 1; i++) {
@@ -1079,10 +871,10 @@
                 const next = candles[i + 1];
                 
                 if (current.close > current.open && next.close > next.open && next.close > current.high) {
-                    blocks.push({ type: 'bullish', high: current.high, low: current.low, time: current.time });
+                    blocks.push({ type: 'bullish', high: current.high, low: current.low });
                 }
                 if (current.close < current.open && next.close < next.open && next.close < current.low) {
-                    blocks.push({ type: 'bearish', high: current.high, low: current.low, time: current.time });
+                    blocks.push({ type: 'bearish', high: current.high, low: current.low });
                 }
             }
             return blocks.slice(-3);
@@ -1134,9 +926,9 @@
                 const current = swings[i];
                 
                 if (current.type === 'high' && current.price > prev.price) {
-                    breaks.push({ type: 'BOS', direction: 'Alcista', time: new Date(current.time * 1000), confirmation: 'Confirmado' });
+                    breaks.push({ type: 'BOS', direction: 'Alcista', confirmation: 'Confirmado' });
                 } else if (current.type === 'low' && current.price < prev.price) {
-                    breaks.push({ type: 'BOS', direction: 'Bajista', time: new Date(current.time * 1000), confirmation: 'Confirmado' });
+                    breaks.push({ type: 'BOS', direction: 'Bajista', confirmation: 'Confirmado' });
                 }
             }
             return breaks.slice(-3);
@@ -1152,10 +944,10 @@
                 const lows = slice.map(c => c.low);
                 
                 if (candles[i].high === Math.max(...highs)) {
-                    swings.push({ type: 'high', price: candles[i].high, time: candles[i].time });
+                    swings.push({ type: 'high', price: candles[i].high });
                 }
                 if (candles[i].low === Math.min(...lows)) {
-                    swings.push({ type: 'low', price: candles[i].low, time: candles[i].time });
+                    swings.push({ type: 'low', price: candles[i].low });
                 }
             }
             return swings;
@@ -1181,7 +973,7 @@
             return { bias, confidence };
         }
 
-        // Render functions
+        // Render Functions
         function renderMarketBias(data) {
             document.getElementById('marketBias').innerHTML = `
                 <div class="signal-badge ${data.bias === 'ALCISTA' ? 'buy-signal' : data.bias === 'BAJISTA' ? 'sell-signal' : 'neutral'} mb-4">
@@ -1211,7 +1003,6 @@
                     </div>
                     <div class="text-xs text-gray-400 mb-1">Rango de Precio</div>
                     <div class="text-sm font-semibold">$${block.low.toFixed(2)} - $${block.high.toFixed(2)}</div>
-                    <div class="text-xs text-gray-400 mt-2">Validez: Alta</div>
                 </div>
             `).join('');
         }
@@ -1232,7 +1023,6 @@
                     </div>
                     <div class="text-xs text-gray-400 mb-1">Gap</div>
                     <div class="text-sm font-semibold">$${gap.low.toFixed(2)} - $${gap.high.toFixed(2)}</div>
-                    <div class="text-xs text-gray-400 mt-2">Estado: Sin llenar</div>
                 </div>
             `).join('');
         }
@@ -1253,7 +1043,6 @@
                     </div>
                     <div class="text-xs text-gray-400 mb-1">Nivel</div>
                     <div class="text-sm font-semibold">$${zone.price.toFixed(2)}</div>
-                    <div class="text-xs text-gray-400 mt-2">Tipo: ${zone.type}</div>
                 </div>
             `).join('');
         }
@@ -1264,24 +1053,19 @@
                 return;
             }
             
-            document.getElementById('structureBreaks').innerHTML = breaks.map(brk => {
-                const timeAgo = Math.floor((Date.now() - brk.time) / (1000 * 60 * 60));
-                return `
-                    <div class="smc-zone bos">
-                        <div class="flex justify-between items-start mb-2">
-                            <div class="text-sm font-bold ${brk.type === 'BOS' ? 'bullish' : 'bearish'}">
-                                🔄 ${brk.type}
-                            </div>
-                            <div class="text-xs text-gray-400">Hace ${timeAgo}h</div>
+            document.getElementById('structureBreaks').innerHTML = breaks.map(brk => `
+                <div class="smc-zone bos">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="text-sm font-bold ${brk.type === 'BOS' ? 'bullish' : 'bearish'}">
+                            🔄 ${brk.type}
                         </div>
-                        <div class="text-xs text-gray-400 mb-1">Dirección</div>
-                        <div class="text-sm font-semibold ${brk.direction === 'Alcista' ? 'bullish' : 'bearish'}">
-                            ${brk.direction}
-                        </div>
-                        <div class="text-xs text-gray-400 mt-2">Confirmación: ${brk.confirmation}</div>
                     </div>
-                `;
-            }).join('');
+                    <div class="text-xs text-gray-400 mb-1">Dirección</div>
+                    <div class="text-sm font-semibold ${brk.direction === 'Alcista' ? 'bullish' : 'bearish'}">
+                        ${brk.direction}
+                    </div>
+                </div>
+            `).join('');
         }
 
         function switchTab(tab) {
@@ -1296,18 +1080,18 @@
                     <div class="space-y-4">
                         <div class="p-4 bg-blue-900 bg-opacity-20 border border-blue-500 border-opacity-30 rounded-lg">
                             <h4 class="font-bold mb-2 text-blue-300">📊 Análisis de Estructura</h4>
-                            <p class="text-sm text-gray-300">Datos reales de Binance (crypto/forex) y Finnhub (acciones). Análisis SMC en tiempo real.</p>
+                            <p class="text-sm text-gray-300">Datos 100% reales de Binance. Análisis SMC actualizado en tiempo real con cada nueva vela.</p>
                         </div>
                         <div class="p-4 bg-green-900 bg-opacity-20 border border-green-500 border-opacity-30 rounded-lg">
                             <h4 class="font-bold mb-2 text-green-300">⚡ Algoritmos SMC</h4>
-                            <p class="text-sm text-gray-300">Detección automática de patrones institucionales con cada nueva vela.</p>
+                            <p class="text-sm text-gray-300">Detección automática de patrones institucionales basados en Smart Money Concepts.</p>
                         </div>
                     </div>
                 `;
             } else if (tab === 'signals') {
                 const lastCandle = priceData[priceData.length - 1];
                 const prevCandle = priceData[priceData.length - 2];
-                const signal = lastCandle.close > prevCandle.close ? 'buy' : 'sell';
+                const signal = lastCandle?.close > prevCandle?.close ? 'buy' : 'sell';
                 
                 content.innerHTML = `
                     <div class="space-y-4">
@@ -1315,24 +1099,19 @@
                             <div class="signal-badge ${signal === 'buy' ? 'buy-signal' : 'sell-signal'} inline-block mb-4 text-xl">
                                 ${signal === 'buy' ? '↗ SEÑAL DE COMPRA' : '↘ SEÑAL DE VENTA'}
                             </div>
-                            <div class="text-sm text-gray-400 mb-2">Basado en análisis real del mercado</div>
-                        </div>
-                        <div class="p-4 bg-purple-900 bg-opacity-20 border border-purple-500 border-opacity-30 rounded-lg">
-                            <h4 class="font-bold mb-2">📝 Análisis en Vivo</h4>
-                            <p class="text-sm text-gray-300">Señales generadas automáticamente con conceptos SMC detectados en datos reales.</p>
+                            <div class="text-sm text-gray-400 mb-2">Basado en análisis en tiempo real</div>
                         </div>
                     </div>
                 `;
             } else if (tab === 'strategy') {
                 content.innerHTML = `
-                    <div class="space-y-4">
-                        <div class="p-4 bg-indigo-900 bg-opacity-20 border border-indigo-500 border-opacity-30 rounded-lg">
-                            <h4 class="font-bold mb-3">🎯 Trading con Datos Reales</h4>
-                            <div class="space-y-3 text-sm text-gray-300">
-                                <div><strong class="text-indigo-300">Paso 1:</strong> Observa los Order Blocks detectados</div>
-                                <div><strong class="text-indigo-300">Paso 2:</strong> Espera confirmación en el gráfico en tiempo real</div>
-                                <div><strong class="text-indigo-300">Paso 3:</strong> Verifica zonas de liquidez antes de entrar</div>
-                            </div>
+                    <div class="p-4 bg-indigo-900 bg-opacity-20 border border-indigo-500 border-opacity-30 rounded-lg">
+                        <h4 class="font-bold mb-3">🎯 Estrategia SMC</h4>
+                        <div class="space-y-3 text-sm text-gray-300">
+                            <div><strong class="text-indigo-300">1.</strong> Identifica Order Blocks en zonas clave</div>
+                            <div><strong class="text-indigo-300">2.</strong> Espera confirmación de estructura</div>
+                            <div><strong class="text-indigo-300">3.</strong> Verifica zonas de liquidez</div>
+                            <div><strong class="text-indigo-300">4.</strong> Entra en el 50% del Order Block</div>
                         </div>
                     </div>
                 `;
