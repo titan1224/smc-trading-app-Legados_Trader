@@ -423,6 +423,162 @@
         /* ============================================ */
         /* MOBILE RESPONSIVE STYLES */
         /* ============================================ */
+
+        /* Donation Button Styles */
+        .donation-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: linear-gradient(135deg, #FF6B35 0%, #E91E63 50%, #9C27B0 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1rem;
+            box-shadow: 0 8px 24px rgba(233, 30, 99, 0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: pulse-donation 2s ease-in-out infinite;
+        }
+
+        .donation-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 32px rgba(233, 30, 99, 0.6);
+        }
+
+        @keyframes pulse-donation {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .donation-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .donation-modal.active {
+            display: flex;
+        }
+
+        .donation-content {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(20, 30, 50, 0.95) 100%);
+            border: 2px solid rgba(233, 30, 99, 0.3);
+            border-radius: 24px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 100%;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(233, 30, 99, 0.3);
+        }
+
+        .donation-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255, 77, 109, 0.2);
+            border: none;
+            color: #FF4081;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .donation-close:hover {
+            background: rgba(255, 77, 109, 0.4);
+            transform: rotate(90deg);
+        }
+
+        .donation-option {
+            background: rgba(233, 30, 99, 0.1);
+            border: 2px solid rgba(233, 30, 99, 0.3);
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin: 1rem 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .donation-option:hover {
+            background: rgba(233, 30, 99, 0.2);
+            border-color: #E91E63;
+            transform: translateX(8px);
+            box-shadow: 0 0 20px rgba(233, 30, 99, 0.3);
+        }
+
+        .donation-icon {
+            font-size: 2rem;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #FF6B35, #E91E63);
+            border-radius: 12px;
+        }
+
+        .donation-info {
+            flex: 1;
+        }
+
+        .donation-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #FF4081;
+            margin-bottom: 0.25rem;
+        }
+
+        .donation-subtitle {
+            font-size: 0.85rem;
+            color: #8892b0;
+        }
+
+        @media (max-width: 768px) {
+            .donation-btn {
+                bottom: 1rem;
+                right: 1rem;
+                padding: 0.75rem 1.25rem;
+                font-size: 0.9rem;
+            }
+
+            .donation-content {
+                padding: 1.5rem;
+            }
+
+            .donation-option {
+                padding: 1rem;
+            }
+
+            .donation-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.5rem;
+            }
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
@@ -1471,6 +1627,128 @@
                     .catch((err) => console.log('Error SW:', err));
             });
         }
+    </script>
+    <!-- Donation Button -->
+    <button class="donation-btn" onclick="openDonationModal()">
+        <span>💝</span>
+        <span>Apoyar Proyecto</span>
+    </button>
+
+    <!-- Donation Modal -->
+    <div id="donationModal" class="donation-modal" onclick="closeDonationModalOnBackdrop(event)">
+        <div class="donation-content">
+            <button class="donation-close" onclick="closeDonationModal()">×</button>
+            
+            <h2 class="text-2xl font-bold mb-2" style="background: linear-gradient(135deg, #FF6B35 0%, #E91E63 50%, #9C27B0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                ¡Apoya LEGADOS_TRADER! 🇨🇴
+            </h2>
+            <p class="text-sm text-gray-400 mb-6">Tu apoyo ayuda a mantener este proyecto 100% gratis y mejorar constantemente</p>
+
+            <!-- Nequi -->
+            <div class="donation-option" onclick="copyToClipboard('3008339461', 'Nequi')">
+                <div class="donation-icon">💜</div>
+                <div class="donation-info">
+                    <div class="donation-title">Nequi</div>
+                    <div class="donation-subtitle">Click para copiar número: 300 833 9461</div>
+                </div>
+            </div>
+
+            <!-- Daviplata -->
+            <div class="donation-option" onclick="copyToClipboard('3008339461', 'Daviplata')">
+                <div class="donation-icon">🔴</div>
+                <div class="donation-info">
+                    <div class="donation-title">Daviplata</div>
+                    <div class="donation-subtitle">Click para copiar número: 300 833 9461</div>
+                </div>
+            </div>
+
+            <!-- Banco de Bogotá -->
+            <div class="donation-option" onclick="copyToClipboard('079311593', 'Banco de Bogotá')">
+                <div class="donation-icon">🏦</div>
+                <div class="donation-info">
+                    <div class="donation-title">Banco de Bogotá</div>
+                    <div class="donation-subtitle">Cuenta: 079311593 - Julián Arias</div>
+                </div>
+            </div>
+
+            <!-- Crypto USDT -->
+            <div class="donation-option" onclick="copyToClipboard('TYXu6QRDx17EyqbVF5kp8AzJdCeCE12sXP', 'USDT (TRC20)')">
+                <div class="donation-icon">₿</div>
+                <div class="donation-info">
+                    <div class="donation-title">USDT (TRC20)</div>
+                    <div class="donation-subtitle">Click para copiar wallet</div>
+                </div>
+            </div>
+
+            <p class="text-xs text-center text-gray-500 mt-6">
+                Cada donación, sin importar el monto, es muy apreciada 💚💛❤️
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function openDonationModal() {
+            document.getElementById('donationModal').classList.add('active');
+        }
+
+        function closeDonationModal() {
+            document.getElementById('donationModal').classList.remove('active');
+        }
+
+        function closeDonationModalOnBackdrop(event) {
+            if (event.target.id === 'donationModal') {
+                closeDonationModal();
+            }
+        }
+
+        function copyToClipboard(text, method) {
+            // Si el texto no está configurado, mostrar alerta
+            if (text.startsWith('TU_')) {
+                alert(`Por favor configura tu información de ${method} en el código`);
+                return;
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+                // Crear notificación
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 2rem;
+                    right: 2rem;
+                    background: linear-gradient(135deg, #FF6B35, #E91E63);
+                    color: white;
+                    padding: 1rem 1.5rem;
+                    border-radius: 12px;
+                    box-shadow: 0 8px 24px rgba(233, 30, 99, 0.4);
+                    z-index: 3000;
+                    font-weight: 600;
+                    animation: slideIn 0.3s ease-out;
+                `;
+                notification.textContent = `✓ ${method} copiado al portapapeles`;
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.style.animation = 'slideOut 0.3s ease-out';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }).catch(err => {
+                alert(`${method}: ${text}`);
+            });
+        }
+
+        // Animaciones
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(400px); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(400px); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
