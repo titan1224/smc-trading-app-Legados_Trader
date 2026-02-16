@@ -565,6 +565,38 @@
             transform: translateY(-5px);
             box-shadow: 0 12px 32px rgba(233, 30, 99, 0.6);
         }
+        
+        .trade-btn {
+            position: fixed;
+            bottom: 2rem;
+            left: 2rem;
+            background: linear-gradient(135deg, #F0B90B 0%, #FFC107 100%);
+            color: #1E1E1E;
+            padding: 1rem 1.5rem;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            font-weight: 900;
+            font-size: 1rem;
+            box-shadow: 0 8px 24px rgba(240, 185, 11, 0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: pulse-trade 2s ease-in-out infinite;
+            text-decoration: none;
+        }
+
+        .trade-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 12px 32px rgba(240, 185, 11, 0.6);
+        }
+
+        @keyframes pulse-trade {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
 
         @keyframes pulse-donation {
             0%, 100% { transform: scale(1); }
@@ -802,6 +834,25 @@
                 text-align: center;
                 gap: 0.5rem;
             }
+            
+            .trade-btn {
+                bottom: 7rem;
+                left: 1rem;
+                right: 1rem;
+                padding: 0.9rem 1.2rem;
+                font-size: 0.9rem;
+                justify-content: center;
+            }
+            
+            .donation-btn {
+                bottom: 1rem;
+                right: 1rem;
+                left: 1rem;
+                padding: 0.9rem 1.2rem;
+                font-size: 0.9rem;
+                justify-content: center;
+            }
+            }
 
             .category-btn {
                 padding: 0.5rem 0.8rem;
@@ -930,19 +981,25 @@
 
         <!-- Affiliate Marketing Banner -->
         <div class="affiliate-banner">
-            <h3>🚀 Empieza a Tradear Hoy</h3>
-            <p class="text-sm text-gray-300 mb-3">Regístrate en los mejores exchanges y recibe bonos de bienvenida</p>
+            <h3>💰 ¿Dónde Tradear Estos Activos?</h3>
+            <p class="text-sm text-gray-300 mb-3">Los datos que ves son 100% reales de estos exchanges. <strong class="text-yellow-400">Regístrate y recibe hasta $600 en bonos</strong></p>
             <div class="affiliate-buttons">
-                <a href="https://accounts.binance.com/register?ref=TU_REFERIDO_BINANCE" target="_blank" class="affiliate-cta">
+                <a href="https://accounts.binance.com/register?ref=TU_REFERIDO_BINANCE" target="_blank" class="affiliate-cta" rel="noopener">
                     <span>⚡</span>
-                    <span>Binance - $100 Bono</span>
+                    <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                        <span style="font-weight: 900;">Binance</span>
+                        <span style="font-size: 0.75rem; opacity: 0.9;">Hasta $100 en Bonos</span>
+                    </div>
                 </a>
-                <a href="https://www.bybit.com/invite?ref=TU_REFERIDO_BYBIT" target="_blank" class="affiliate-cta">
+                <a href="https://www.bybit.com/invite?ref=TU_REFERIDO_BYBIT" target="_blank" class="affiliate-cta" rel="noopener">
                     <span>💎</span>
-                    <span>Bybit - $500 Bono</span>
+                    <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                        <span style="font-weight: 900;">Bybit</span>
+                        <span style="font-size: 0.75rem; opacity: 0.9;">Hasta $500 en Bonos</span>
+                    </div>
                 </a>
             </div>
-            <p class="text-xs text-gray-400 mt-3">*Aplican términos y condiciones</p>
+            <p class="text-xs text-gray-400 mt-3">✅ Exchanges usados por LEGADOS_TRADER • 🇨🇴 Disponible en Colombia</p>
         </div>
 
         <!-- Google AdSense Banner Top -->
@@ -2132,25 +2189,40 @@
     <div id="promoPopup" class="promo-popup">
         <button class="promo-close" onclick="closePromoPopup()">×</button>
         <h3 style="background: linear-gradient(135deg, #FF6B35 0%, #E91E63 50%, #9C27B0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1.3rem; font-weight: 900; margin-bottom: 0.5rem;">
-            ¡Bienvenido a LEGADOS_TRADER! 🇨🇴
+            🇨🇴 Bienvenido a LEGADOS_TRADER
         </h3>
-        <p class="text-sm text-gray-300 mb-4">
-            Regístrate en nuestros exchanges recomendados y recibe hasta <strong class="text-yellow-400">$600 en bonos</strong>
+        <p class="text-sm text-gray-300 mb-2">
+            <strong class="text-yellow-400">+1,000 traders colombianos</strong> ya están usando estos exchanges
+        </p>
+        <p class="text-xs text-gray-400 mb-4">
+            📊 Los precios que ves son 100% reales de estas plataformas
         </p>
         <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-            <a href="https://accounts.binance.com/register?ref=TU_REFERIDO_BINANCE" target="_blank" class="affiliate-cta" style="font-size: 0.9rem; padding: 0.75rem 1rem;">
+            <a href="https://accounts.binance.com/register?ref=TU_REFERIDO_BINANCE" target="_blank" class="affiliate-cta" style="font-size: 0.9rem; padding: 0.75rem 1rem;" rel="noopener">
                 <span>⚡</span>
-                <span>Binance → $100</span>
+                <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                    <span style="font-weight: 900;">Binance</span>
+                    <span style="font-size: 0.7rem; opacity: 0.9;">🎁 Hasta $100 en Bonos</span>
+                </div>
             </a>
-            <a href="https://www.bybit.com/invite?ref=TU_REFERIDO_BYBIT" target="_blank" class="affiliate-cta" style="font-size: 0.9rem; padding: 0.75rem 1rem;">
+            <a href="https://www.bybit.com/invite?ref=TU_REFERIDO_BYBIT" target="_blank" class="affiliate-cta" style="font-size: 0.9rem; padding: 0.75rem 1rem;" rel="noopener">
                 <span>💎</span>
-                <span>Bybit → $500</span>
+                <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                    <span style="font-weight: 900;">Bybit</span>
+                    <span style="font-size: 0.7rem; opacity: 0.9;">🎁 Hasta $500 en Bonos</span>
+                </div>
             </a>
         </div>
         <p class="text-xs text-gray-500 mt-3 text-center">
-            Usa estas plataformas para tradear los activos que ves aquí
+            ⏱️ Regístrate en menos de 2 minutos
         </p>
     </div>
+
+    <!-- Trade Button (Floating Left) -->
+    <a href="https://accounts.binance.com/register?ref=TU_REFERIDO_BINANCE" target="_blank" class="trade-btn" rel="noopener">
+        <span>⚡</span>
+        <span>Tradear en Binance</span>
+    </a>
 
     <!-- Donation Button -->
     <button class="donation-btn" onclick="openDonationModal()">
@@ -2314,6 +2386,46 @@
             }
         `;
         document.head.appendChild(style);
+        
+        // Funciones para el popup promocional
+        function showPromoPopup() {
+            const popup = document.getElementById('promoPopup');
+            const hasSeenPopup = localStorage.getItem('hasSeenPromoPopup');
+            
+            // Mostrar popup solo si no lo ha visto antes
+            if (!hasSeenPopup) {
+                setTimeout(() => {
+                    popup.classList.add('show');
+                }, 3000); // Mostrar después de 3 segundos
+            }
+        }
+        
+        function closePromoPopup() {
+            const popup = document.getElementById('promoPopup');
+            popup.classList.remove('show');
+            localStorage.setItem('hasSeenPromoPopup', 'true');
+        }
+        
+        // Tracking de clicks en botones de affiliate
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('.affiliate-cta, .trade-btn');
+            if (target) {
+                const platform = target.href.includes('binance') ? 'Binance' : 'Bybit';
+                const location = target.classList.contains('trade-btn') ? 'Floating Button' : 
+                                target.closest('.promo-popup') ? 'Popup' : 'Banner';
+                
+                console.log(`🎯 Click en ${platform} - ${location}`);
+                
+                // Si tienes Google Analytics, descomenta esto:
+                // gtag('event', 'affiliate_click', {
+                //     'platform': platform,
+                //     'location': location
+                // });
+            }
+        });
+        
+        // Mostrar popup al cargar
+        showPromoPopup();
     </script>
 </body>
 </html>
